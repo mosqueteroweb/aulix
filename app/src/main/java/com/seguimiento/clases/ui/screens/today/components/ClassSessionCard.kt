@@ -3,6 +3,7 @@ package com.seguimiento.clases.ui.screens.today.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -30,6 +31,7 @@ import com.seguimiento.clases.data.local.entity.ClassLogEntity
 import com.seguimiento.clases.ui.components.SubjectBadge
 import com.seguimiento.clases.ui.screens.subjects.components.AddEditLogDialog
 import com.seguimiento.clases.ui.screens.today.SessionCardUiState
+import com.seguimiento.clases.ui.theme.DayThemes
 import com.seguimiento.clases.ui.theme.parseColor
 
 @Composable
@@ -42,7 +44,8 @@ fun ClassSessionCard(
     onDeletePriorLog: (log: ClassLogEntity) -> Unit,
     onNavigateToHistory: () -> Unit,
     onOpenIdeasBottomSheet: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    dayOfWeek: Int = 1
 ) {
     val subject = cardState.session.subject
     var showClearConfirmDialog by remember { mutableStateOf(false) }
@@ -73,12 +76,15 @@ fun ClassSessionCard(
         )
     }
 
+    val dayConfig = DayThemes.forDay(dayOfWeek)
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
+        border = BorderStroke(width = 1.5.dp, color = dayConfig.currentBorder()),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(

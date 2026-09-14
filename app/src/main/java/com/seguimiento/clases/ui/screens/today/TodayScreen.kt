@@ -106,6 +106,7 @@ fun TodayScreen(
                         val subjectId = cardState.session.subject.id
                         ClassSessionCard(
                             cardState = cardState,
+                            dayOfWeek = uiState.dayOfWeek,
                             onContentChange = { newText ->
                                 viewModel.onLogContentChanged(subjectId, newText)
                             },

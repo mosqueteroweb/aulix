@@ -23,6 +23,11 @@ data class DayConfig(
     fun currentContainer(): Color {
         return if (isSystemInDarkTheme()) containerDark else containerLight
     }
+
+    @Composable
+    fun currentBorder(): Color {
+        return if (isSystemInDarkTheme()) accentDark.copy(alpha = 0.65f) else solidColor.copy(alpha = 0.55f)
+    }
 }
 
 object DayThemes {
