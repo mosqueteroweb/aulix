@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.IdeaEntity
 import com.seguimiento.clases.data.local.entity.SubjectEntity
@@ -105,13 +106,20 @@ fun PendingIdeasBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
+        dragHandle = {
+            BottomSheetDefaults.DragHandle(
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+            )
+        },
+        windowInsets = WindowInsets(0, 0, 0, 0),
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp)
-                .padding(bottom = 32.dp)
+                .padding(horizontal = 16.dp)
+                .navigationBarsPadding()
+                .padding(bottom = 16.dp)
         ) {
             // Cabecera
             Row(
@@ -119,27 +127,33 @@ fun PendingIdeasBottomSheet(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Ideas pendientes",
-                        style = MaterialTheme.typography.titleLarge,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = "Asignatura: ${subject.code}${if (subject.name.isNotBlank()) " - ${subject.name}" else ""}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
-                TextButton(onClick = {
-                    onDismiss()
-                    onNavigateToSubjectDetail()
-                }) {
+                Spacer(modifier = Modifier.width(8.dp))
+                TextButton(
+                    onClick = {
+                        onDismiss()
+                        onNavigateToSubjectDetail()
+                    },
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                ) {
                     Text("Ver todas")
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Campo para añadir una idea rápida
             Row(
@@ -149,7 +163,14 @@ fun PendingIdeasBottomSheet(
                 OutlinedTextField(
                     value = newIdeaText,
                     onValueChange = { newIdeaText = it },
-                    placeholder = { Text("Nueva idea para una sesión...") },
+                    placeholder = {
+                        Text(
+                            text = "Nueva idea para una sesión...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp)
@@ -172,7 +193,7 @@ fun PendingIdeasBottomSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Lista de ideas pendientes
             if (pendingIdeas.isEmpty()) {
