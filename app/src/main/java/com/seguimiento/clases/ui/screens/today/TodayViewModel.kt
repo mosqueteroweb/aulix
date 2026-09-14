@@ -11,6 +11,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -26,6 +27,8 @@ data class SessionCardUiState(
 data class TodayUiState(
     val selectedDate: LocalDate = LocalDate.now(),
     val isToday: Boolean = true,
+    val dayName: String = "",
+    val dateSubtitle: String = "",
     val formattedDate: String = "",
     val sessions: List<SessionCardUiState> = emptyList(),
     val isLoading: Boolean = true,
@@ -36,7 +39,15 @@ class TodayViewModel(
     private val repository: ClassRepository
 ) : ViewModel() {
 
-    private val _selectedDate = MutableStateFlow(LocalDate.now())
+    private fun adjustToWeekday(date: LocalDate): LocalDate {
+        return when (date.dayOfWeek) {
+            DayOfWeek.SATURDAY -> date.plusDays(2)
+            DayOfWeek.SUNDAY -> date.plusDays(1)
+            else -> date
+        }
+    }
+
+    private val _selectedDate = MutableStateFlow(adjustToWeekday(LocalDate.now()))
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
 
     private val _activeBottomSheetSubjectId = MutableStateFlow<Long?>(null)
@@ -50,7 +61,6 @@ class TodayViewModel(
     private val saveDebounceJobs = mutableMapOf<Long, Job>()
 
     private val spanishLocale = Locale("es", "ES")
-    private val dateFormatter = DateTimeFormatter.ofPattern("EEEE, d 'de' MMMM", spanishLocale)
 
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<TodayUiState> = combine(
@@ -61,13 +71,15 @@ class TodayViewModel(
     ) { date, expandedIds, drafts, bottomSheetId ->
         Tuple4(date, expandedIds, drafts, bottomSheetId)
     }.flatMapLatest { (date, expandedIds, drafts, bottomSheetId) ->
-        val dayOfWeek = date.dayOfWeek.value // 1 = Lunes, 7 = Domingo
+        val dayOfWeek = date.dayOfWeek.value // 1 = Lunes, 5 = Viernes
         val dateString = date.toString() // "YYYY-MM-DD"
-        val today = LocalDate.now()
-        val isToday = date.isEqual(today)
+        val currentSchoolToday = adjustToWeekday(LocalDate.now())
+        val isToday = date.isEqual(currentSchoolToday)
 
-        val rawDateFormatted = date.format(dateFormatter)
-        val formattedDate = rawDateFormatted.replaceFirstChar { if (it.isLowerCase()) it.titlecase(spanishLocale) else it.toString() }
+        val dayName = date.format(DateTimeFormatter.ofPattern("EEEE", spanishLocale))
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(spanishLocale) else it.toString() }
+        val dateSubtitle = date.format(DateTimeFormatter.ofPattern("d 'de' MMMM", spanishLocale))
+        val formattedDate = "$dayName, $dateSubtitle"
 
         repository.getSessionsForDay(dayOfWeek).flatMapLatest { sessionsList ->
             if (sessionsList.isEmpty()) {
@@ -75,6 +87,8 @@ class TodayViewModel(
                     TodayUiState(
                         selectedDate = date,
                         isToday = isToday,
+                        dayName = dayName,
+                        dateSubtitle = dateSubtitle,
                         formattedDate = formattedDate,
                         sessions = emptyList(),
                         isLoading = false,
@@ -105,6 +119,8 @@ class TodayViewModel(
                     TodayUiState(
                         selectedDate = date,
                         isToday = isToday,
+                        dayName = dayName,
+                        dateSubtitle = dateSubtitle,
                         formattedDate = formattedDate,
                         sessions = cardsArray.toList(),
                         isLoading = false,
@@ -121,17 +137,29 @@ class TodayViewModel(
 
     fun onPreviousDay() {
         _draftLogs.value = emptyMap()
-        _selectedDate.update { it.minusDays(1) }
+        _selectedDate.update { current ->
+            var prev = current.minusDays(1)
+            while (prev.dayOfWeek == DayOfWeek.SATURDAY || prev.dayOfWeek == DayOfWeek.SUNDAY) {
+                prev = prev.minusDays(1)
+            }
+            prev
+        }
     }
 
     fun onNextDay() {
         _draftLogs.value = emptyMap()
-        _selectedDate.update { it.plusDays(1) }
+        _selectedDate.update { current ->
+            var next = current.plusDays(1)
+            while (next.dayOfWeek == DayOfWeek.SATURDAY || next.dayOfWeek == DayOfWeek.SUNDAY) {
+                next = next.plusDays(1)
+            }
+            next
+        }
     }
 
     fun onGoToToday() {
         _draftLogs.value = emptyMap()
-        _selectedDate.value = LocalDate.now()
+        _selectedDate.value = adjustToWeekday(LocalDate.now())
     }
 
     fun toggleExpandPriorLogs(subjectId: Long) {
@@ -166,6 +194,31 @@ class TodayViewModel(
         repository.saveClassLog(subjectId, dateString, content)
     }
 
+    fun clearCurrentLog(subjectId: Long) {
+        saveDebounceJobs[subjectId]?.cancel()
+        _draftLogs.update { current -> current - subjectId }
+        val dateString = _selectedDate.value.toString()
+        viewModelScope.launch {
+            repository.deleteLogForSubjectAndDate(subjectId, dateString)
+        }
+    }
+
+    fun saveOrUpdatePriorLog(initialLog: ClassLogEntity?, newDate: String, newContent: String, subjectId: Long) {
+        if (newContent.isBlank()) return
+        viewModelScope.launch {
+            if (initialLog != null && initialLog.date != newDate) {
+                repository.deleteClassLog(initialLog)
+            }
+            repository.saveClassLog(subjectId, newDate, newContent.trim())
+        }
+    }
+
+    fun deletePriorLog(log: ClassLogEntity) {
+        viewModelScope.launch {
+            repository.deleteClassLog(log)
+        }
+    }
+
     fun openBottomSheetForSubject(subjectId: Long) {
         _activeBottomSheetSubjectId.value = subjectId
     }
@@ -177,6 +230,19 @@ class TodayViewModel(
     fun markIdeaAsUsed(ideaId: Long) {
         viewModelScope.launch {
             repository.setIdeaUsedState(ideaId, true)
+        }
+    }
+
+    fun updateIdeaText(ideaId: Long, newText: String) {
+        if (newText.isBlank()) return
+        viewModelScope.launch {
+            repository.updateIdeaText(ideaId, newText.trim())
+        }
+    }
+
+    fun deleteIdea(ideaId: Long) {
+        viewModelScope.launch {
+            repository.deleteIdeaById(ideaId)
         }
     }
 

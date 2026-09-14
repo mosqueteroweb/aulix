@@ -64,12 +64,17 @@ class SubjectDetailViewModel(
     }
 
     // --- ACCIONES REGISTRO ---
-    fun saveLog(date: String, content: String) {
+    fun saveOrUpdateLog(initialLog: ClassLogEntity?, date: String, content: String) {
         if (content.isBlank()) return
         viewModelScope.launch {
+            if (initialLog != null && initialLog.date != date) {
+                repository.deleteClassLog(initialLog)
+            }
             repository.saveClassLog(subjectId, date, content.trim())
         }
     }
+
+    fun saveLog(date: String, content: String) = saveOrUpdateLog(null, date, content)
 
     fun deleteLog(log: ClassLogEntity) {
         viewModelScope.launch {
@@ -88,9 +93,6 @@ class SubjectDetailViewModel(
     fun updateIdea(id: Long, text: String) {
         if (text.isBlank()) return
         viewModelScope.launch {
-            val idea = uiState.value.pendingIdeas.firstOrNull { it.id == id }
-                ?: uiState.value.usedIdeas.firstOrNull { it.id == id }
-                ?: return@launch
             repository.updateIdeaText(id, text)
         }
     }

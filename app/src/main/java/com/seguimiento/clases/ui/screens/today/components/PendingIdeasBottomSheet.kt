@@ -7,7 +7,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,10 +27,75 @@ fun PendingIdeasBottomSheet(
     onDismiss: () -> Unit,
     onMarkIdeaUsed: (Long) -> Unit,
     onAddQuickIdea: (String) -> Unit,
+    onEditIdea: (Long, String) -> Unit,
+    onDeleteIdea: (Long) -> Unit,
     onNavigateToSubjectDetail: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var newIdeaText by remember { mutableStateOf("") }
+    var editingIdea by remember { mutableStateOf<IdeaEntity?>(null) }
+    var ideaToDelete by remember { mutableStateOf<IdeaEntity?>(null) }
+
+    // Diálogo para editar idea
+    if (editingIdea != null) {
+        var editText by remember(editingIdea) { mutableStateOf(editingIdea?.text ?: "") }
+        AlertDialog(
+            onDismissRequest = { editingIdea = null },
+            title = { Text("Editar idea") },
+            text = {
+                OutlinedTextField(
+                    value = editText,
+                    onValueChange = { editText = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    shape = RoundedCornerShape(10.dp)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        editingIdea?.let { onEditIdea(it.id, editText) }
+                        editingIdea = null
+                    },
+                    enabled = editText.isNotBlank()
+                ) {
+                    Text("Guardar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingIdea = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    // Diálogo para confirmar eliminación de idea
+    if (ideaToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { ideaToDelete = null },
+            title = { Text("¿Eliminar idea?") },
+            text = { Text("Se eliminará esta idea de forma definitiva.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        ideaToDelete?.let { onDeleteIdea(it.id) }
+                        ideaToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { ideaToDelete = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -144,7 +210,7 @@ fun PendingIdeasBottomSheet(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(12.dp),
+                                    .padding(start = 12.dp, top = 6.dp, end = 6.dp, bottom = 6.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
@@ -153,20 +219,41 @@ fun PendingIdeasBottomSheet(
                                     modifier = Modifier.weight(1f)
                                 )
 
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
 
-                                OutlinedButton(
+                                IconButton(
                                     onClick = { onMarkIdeaUsed(idea.id) },
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                    shape = RoundedCornerShape(8.dp)
+                                    modifier = Modifier.size(36.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Outlined.CheckCircle,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
+                                        imageVector = Icons.Filled.CheckCircle,
+                                        contentDescription = "Marcar como usada",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Usada", style = MaterialTheme.typography.labelSmall)
+                                }
+
+                                IconButton(
+                                    onClick = { editingIdea = idea },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Edit,
+                                        contentDescription = "Editar idea",
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { ideaToDelete = idea },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = "Eliminar idea",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
                             }
                         }

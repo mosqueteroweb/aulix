@@ -45,7 +45,7 @@ fun SubjectDetailScreen(
                 editingLog = null
             },
             onSave = { date, content ->
-                viewModel.saveLog(date, content)
+                viewModel.saveOrUpdateLog(editingLog, date, content)
             }
         )
     }

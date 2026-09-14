@@ -33,6 +33,9 @@ interface ClassLogDao {
     @Query("DELETE FROM class_logs WHERE id = :id")
     suspend fun deleteLogById(id: Long)
 
+    @Query("DELETE FROM class_logs WHERE subjectId = :subjectId AND date = :date")
+    suspend fun deleteLogForSubjectAndDate(subjectId: Long, date: String)
+
     @Query("DELETE FROM class_logs")
     suspend fun deleteAllLogs()
 }

@@ -31,7 +31,8 @@ fun TodayScreen(
     Scaffold(
         topBar = {
             DateNavigationHeader(
-                formattedDate = uiState.formattedDate,
+                dayName = uiState.dayName,
+                dateSubtitle = uiState.dateSubtitle,
                 isToday = uiState.isToday,
                 onPreviousDay = { viewModel.onPreviousDay() },
                 onNextDay = { viewModel.onNextDay() },
@@ -107,8 +108,17 @@ fun TodayScreen(
                             onContentChange = { newText ->
                                 viewModel.onLogContentChanged(subjectId, newText)
                             },
+                            onClearCurrentLog = {
+                                viewModel.clearCurrentLog(subjectId)
+                            },
                             onToggleExpandPrior = {
                                 viewModel.toggleExpandPriorLogs(subjectId)
+                            },
+                            onEditPriorLog = { log, newDate, newContent ->
+                                viewModel.saveOrUpdatePriorLog(log, newDate, newContent, subjectId)
+                            },
+                            onDeletePriorLog = { log ->
+                                viewModel.deletePriorLog(log)
                             },
                             onNavigateToHistory = {
                                 onNavigateToSubjectDetail(subjectId)
@@ -132,6 +142,8 @@ fun TodayScreen(
                         onDismiss = { viewModel.closeBottomSheet() },
                         onMarkIdeaUsed = { ideaId -> viewModel.markIdeaAsUsed(ideaId) },
                         onAddQuickIdea = { text -> viewModel.addQuickIdea(activeSubjectId, text) },
+                        onEditIdea = { ideaId, newText -> viewModel.updateIdeaText(ideaId, newText) },
+                        onDeleteIdea = { ideaId -> viewModel.deleteIdea(ideaId) },
                         onNavigateToSubjectDetail = { onNavigateToSubjectDetail(activeSubjectId) }
                     )
                 }

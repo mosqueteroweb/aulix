@@ -19,12 +19,14 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun DateNavigationHeader(
-    formattedDate: String,
+    dayName: String,
+    dateSubtitle: String,
     isToday: Boolean,
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
     onGoToToday: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    formattedDate: String = ""
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
@@ -51,17 +53,29 @@ fun DateNavigationHeader(
                     )
                 }
 
-                Text(
-                    text = formattedDate,
-                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp),
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    softWrap = false,
+                Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(horizontal = 4.dp)
-                )
+                        .padding(horizontal = 4.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = dayName.ifBlank { formattedDate },
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        maxLines = 1
+                    )
+                    if (dateSubtitle.isNotBlank()) {
+                        Text(
+                            text = dateSubtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1
+                        )
+                    }
+                }
 
                 IconButton(
                     onClick = onNextDay,

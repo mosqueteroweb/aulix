@@ -10,12 +10,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
 import com.seguimiento.clases.ui.components.SubjectBadge
+import com.seguimiento.clases.ui.screens.subjects.components.AddEditLogDialog
 import com.seguimiento.clases.ui.screens.today.SessionCardUiState
 import com.seguimiento.clases.ui.theme.parseColor
 
@@ -32,12 +36,42 @@ import com.seguimiento.clases.ui.theme.parseColor
 fun ClassSessionCard(
     cardState: SessionCardUiState,
     onContentChange: (String) -> Unit,
+    onClearCurrentLog: () -> Unit,
     onToggleExpandPrior: () -> Unit,
+    onEditPriorLog: (log: ClassLogEntity, newDate: String, newContent: String) -> Unit,
+    onDeletePriorLog: (log: ClassLogEntity) -> Unit,
     onNavigateToHistory: () -> Unit,
     onOpenIdeasBottomSheet: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val subject = cardState.session.subject
+    var showClearConfirmDialog by remember { mutableStateOf(false) }
+
+    if (showClearConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirmDialog = false },
+            title = { Text("¿Borrar anotación de clase?") },
+            text = { Text("Se borrará el texto anotado para la sesión de hoy.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onClearCurrentLog()
+                        showClearConfirmDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Borrar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirmDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -111,18 +145,45 @@ fun ClassSessionCard(
                 priorLogs = cardState.recentPriorLogs,
                 isExpanded = cardState.isExpandedPriorLogs,
                 onToggleExpand = onToggleExpandPrior,
-                onNavigateToHistory = onNavigateToHistory
+                onEditLog = onEditPriorLog,
+                onDeleteLog = onDeletePriorLog
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
             // Campo de texto: «Lo visto en clase»
-            Text(
-                text = "Lo visto en clase",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Lo visto en clase",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
+
+                if (cardState.currentLogContent.isNotBlank()) {
+                    TextButton(
+                        onClick = { showClearConfirmDialog = true },
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.DeleteOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Borrar",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(6.dp))
 
@@ -181,7 +242,8 @@ private fun PriorNotesSection(
     priorLogs: List<ClassLogEntity>,
     isExpanded: Boolean,
     onToggleExpand: () -> Unit,
-    onNavigateToHistory: () -> Unit
+    onEditLog: (ClassLogEntity, String, String) -> Unit,
+    onDeleteLog: (ClassLogEntity) -> Unit
 ) {
     if (priorLogs.isEmpty()) {
         Surface(
@@ -200,6 +262,45 @@ private fun PriorNotesSection(
     }
 
     val latest = priorLogs.first()
+    var editingLog by remember { mutableStateOf<ClassLogEntity?>(null) }
+    var logToDelete by remember { mutableStateOf<ClassLogEntity?>(null) }
+
+    if (editingLog != null) {
+        AddEditLogDialog(
+            initialLog = editingLog,
+            onDismiss = { editingLog = null },
+            onSave = { date, content ->
+                editingLog?.let { onEditLog(it, date, content) }
+                editingLog = null
+            }
+        )
+    }
+
+    if (logToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { logToDelete = null },
+            title = { Text("¿Eliminar anotación?") },
+            text = { Text("Se eliminará permanentemente la anotación de la fecha ${logToDelete?.date}.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        logToDelete?.let { onDeleteLog(it) }
+                        logToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Text("Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { logToDelete = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
 
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -217,24 +318,52 @@ private fun PriorNotesSection(
                     text = "Última clase (${latest.date}):",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
 
-                if (priorLogs.size > 1) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable(onClick = onToggleExpand)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (priorLogs.size > 1) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .clickable(onClick = onToggleExpand)
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = if (isExpanded) "Ocultar" else "Ver 3 últimas",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                            Icon(
+                                imageVector = if (isExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = { editingLog = latest },
+                        modifier = Modifier.size(28.dp)
                     ) {
-                        Text(
-                            text = if (isExpanded) "Ocultar" else "Ver 3 últimas",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
                         Icon(
-                            imageVector = if (isExpanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.secondary
+                            imageVector = Icons.Filled.Edit,
+                            contentDescription = "Editar anotación",
+                            modifier = Modifier.size(15.dp)
+                        )
+                    }
+
+                    IconButton(
+                        onClick = { logToDelete = latest },
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Eliminar anotación",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(15.dp)
                         )
                     }
                 }
@@ -262,12 +391,43 @@ private fun PriorNotesSection(
                             modifier = Modifier.padding(vertical = 6.dp),
                             color = MaterialTheme.colorScheme.outlineVariant
                         )
-                        Text(
-                            text = "Sesión ${log.date}:",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Sesión ${log.date}:",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = { editingLog = log },
+                                    modifier = Modifier.size(26.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Edit,
+                                        contentDescription = "Editar anotación",
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { logToDelete = log },
+                                    modifier = Modifier.size(26.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Delete,
+                                        contentDescription = "Eliminar anotación",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
+                        }
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = log.content,
