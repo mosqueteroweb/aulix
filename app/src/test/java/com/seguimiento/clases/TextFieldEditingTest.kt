@@ -99,4 +99,54 @@ class TextFieldEditingTest {
         assertEquals("", localValue.text)
         assertEquals(0, localValue.selection.start)
     }
+
+    @Test
+    fun testTextSelectionRangeAndReplacement() {
+        val original = "Gémini estudiantes alta clase aula virtual"
+        var textFieldValue = TextFieldValue(original, TextRange(original.length))
+
+        // Simulación de usuario seleccionando la palabra "estudiantes" (índices 7 a 18)
+        val selStart = original.indexOf("estudiantes")
+        val selEnd = selStart + "estudiantes".length
+        textFieldValue = textFieldValue.copy(selection = TextRange(selStart, selEnd))
+
+        assertEquals(7, textFieldValue.selection.start)
+        assertEquals(18, textFieldValue.selection.end)
+        assertEquals(true, textFieldValue.selection.length > 0)
+        assertEquals("estudiantes", textFieldValue.text.substring(textFieldValue.selection.start, textFieldValue.selection.end))
+
+        // El usuario reemplaza el texto seleccionado tecleando "alumnos"
+        val replacement = "alumnos"
+        val textBefore = textFieldValue.text.substring(0, textFieldValue.selection.start)
+        val textAfter = textFieldValue.text.substring(textFieldValue.selection.end)
+        val replacedText = textBefore + replacement + textAfter
+        val newCursor = textFieldValue.selection.start + replacement.length
+
+        textFieldValue = textFieldValue.copy(
+            text = replacedText,
+            selection = TextRange(newCursor)
+        )
+
+        assertEquals("Gémini alumnos alta clase aula virtual", textFieldValue.text)
+        assertEquals(14, textFieldValue.selection.start)
+    }
+
+    @Test
+    fun testSelectAllAndCutOrDelete() {
+        val original = "Notas a descartar completamente"
+        var textFieldValue = TextFieldValue(original, TextRange(original.length))
+
+        // Seleccionar todo
+        textFieldValue = textFieldValue.copy(selection = TextRange(0, original.length))
+        assertEquals(0, textFieldValue.selection.start)
+        assertEquals(original.length, textFieldValue.selection.end)
+
+        // Simular Cortar / Borrar selección
+        val cutText = textFieldValue.text.substring(textFieldValue.selection.start, textFieldValue.selection.end)
+        assertEquals(original, cutText)
+
+        textFieldValue = textFieldValue.copy(text = "", selection = TextRange.Zero)
+        assertEquals("", textFieldValue.text)
+        assertEquals(0, textFieldValue.selection.start)
+    }
 }

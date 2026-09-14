@@ -1,7 +1,12 @@
 package com.seguimiento.clases.ui.navigation
 
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -24,6 +29,7 @@ import com.seguimiento.clases.ui.screens.subjects.SubjectsViewModel
 import com.seguimiento.clases.ui.screens.today.TodayScreen
 import com.seguimiento.clases.ui.screens.today.TodayViewModel
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AppNavigation(
     repository: ClassRepository,
@@ -33,7 +39,8 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    val shouldShowBottomBar = Screen.bottomNavItems.any { it.route == currentRoute }
+    val isImeVisible = WindowInsets.isImeVisible
+    val shouldShowBottomBar = Screen.bottomNavItems.any { it.route == currentRoute } && !isImeVisible
 
     Scaffold(
         bottomBar = {
@@ -64,12 +71,16 @@ fun AppNavigation(
                 }
             }
         },
+        contentWindowInsets = WindowInsets.systemBars,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
         NavHost(
             navController = navController,
             startDestination = Screen.Today.route,
-            modifier = Modifier.padding(innerPadding)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
         ) {
             // Pantalla Hoy
             composable(Screen.Today.route) {

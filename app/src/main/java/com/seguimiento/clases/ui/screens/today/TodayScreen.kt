@@ -40,6 +40,7 @@ fun TodayScreen(
                 onGoToToday = { viewModel.onGoToToday() }
             )
         },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         modifier = modifier
     ) { innerPadding ->
         Box(

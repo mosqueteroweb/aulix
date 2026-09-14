@@ -48,6 +48,7 @@ fun SettingsScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         modifier = modifier
     ) { innerPadding ->
         Column(
@@ -100,7 +101,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Versión 0.1.6 • 100% Sin conexión • Almacenamiento local SQLite/Room.",
+                        text = "Versión 0.1.7 • 100% Sin conexión • Almacenamiento local SQLite/Room.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

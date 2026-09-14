@@ -9,6 +9,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
@@ -172,14 +174,16 @@ fun ClassSessionCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Sección: Última(s) anotación(es) anterior(es)
-            PriorNotesSection(
-                priorLogs = cardState.recentPriorLogs,
-                isExpanded = cardState.isExpandedPriorLogs,
-                onToggleExpand = onToggleExpandPrior,
-                onEditLog = onEditPriorLog,
-                onDeleteLog = onDeletePriorLog
-            )
+            // Sección: Última(s) anotación(es) anterior(es) (con selección de texto habilitada)
+            SelectionContainer {
+                PriorNotesSection(
+                    priorLogs = cardState.recentPriorLogs,
+                    isExpanded = cardState.isExpandedPriorLogs,
+                    onToggleExpand = onToggleExpandPrior,
+                    onEditLog = onEditPriorLog,
+                    onDeleteLog = onDeletePriorLog
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -234,6 +238,12 @@ fun ClassSessionCard(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 },
+                colors = OutlinedTextFieldDefaults.colors(
+                    selectionColors = TextSelectionColors(
+                        handleColor = MaterialTheme.colorScheme.primary,
+                        backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    )
+                ),
                 minLines = 3,
                 maxLines = 8,
                 shape = RoundedCornerShape(12.dp)

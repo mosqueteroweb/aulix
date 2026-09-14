@@ -60,6 +60,7 @@ fun SubjectsScreen(
                 Icon(Icons.Filled.Add, contentDescription = "Añadir asignatura")
             }
         },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         modifier = modifier
     ) { innerPadding ->
         if (uiState.isLoading) {
