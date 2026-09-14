@@ -17,8 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.SubjectEntity
+import com.seguimiento.clases.ui.components.SubjectBadge
 import com.seguimiento.clases.ui.theme.parseColor
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -118,8 +120,6 @@ fun SubjectCard(
     isArchived: Boolean = false,
     onClick: () -> Unit
 ) {
-    val color = parseColor(subject.colorHex)
-
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -139,20 +139,12 @@ fun SubjectCard(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(if (isArchived) Color.Gray else color),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = subject.code,
-                    color = Color.White,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            SubjectBadge(
+                code = subject.code,
+                colorHex = subject.colorHex,
+                size = 48.dp,
+                isArchived = isArchived
+            )
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -160,13 +152,17 @@ fun SubjectCard(
                 Text(
                     text = subject.code,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    softWrap = false
                 )
                 if (subject.name.isNotBlank()) {
                     Text(
                         text = subject.name,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

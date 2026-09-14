@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
+import com.seguimiento.clases.ui.components.SubjectBadge
 import com.seguimiento.clases.ui.screens.subjects.components.AddEditLogDialog
 import com.seguimiento.clases.ui.screens.subjects.components.SubjectHistoryTab
 import com.seguimiento.clases.ui.screens.subjects.components.SubjectIdeasTab
@@ -85,20 +86,11 @@ fun SubjectDetailScreen(
                 title = {
                     if (subject != null) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(parseColor(subject.colorHex)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = subject.code,
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            SubjectBadge(
+                                code = subject.code,
+                                colorHex = subject.colorHex,
+                                size = 36.dp
+                            )
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(

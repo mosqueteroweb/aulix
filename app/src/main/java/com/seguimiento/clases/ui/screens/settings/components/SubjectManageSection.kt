@@ -15,8 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.SubjectEntity
+import com.seguimiento.clases.ui.components.SubjectBadge
 import com.seguimiento.clases.ui.theme.parseColor
 
 @Composable
@@ -96,7 +98,6 @@ fun SubjectManageSection(
             Spacer(modifier = Modifier.height(12.dp))
 
             subjects.forEach { subject ->
-                val color = parseColor(subject.colorHex)
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -113,20 +114,12 @@ fun SubjectManageSection(
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(if (subject.isArchived) Color.Gray else color),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = subject.code,
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                        SubjectBadge(
+                            code = subject.code,
+                            colorHex = subject.colorHex,
+                            size = 36.dp,
+                            isArchived = subject.isArchived
+                        )
 
                         Spacer(modifier = Modifier.width(12.dp))
 
@@ -134,18 +127,25 @@ fun SubjectManageSection(
                             Text(
                                 text = subject.code + if (subject.isArchived) " (Archivada)" else "",
                                 style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                softWrap = false
                             )
                             if (subject.name.isNotBlank()) {
                                 Text(
                                     text = subject.name,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }
 
-                        IconButton(onClick = { subjectToEdit = subject }) {
+                        IconButton(
+                            onClick = { subjectToEdit = subject },
+                            modifier = Modifier.size(36.dp)
+                        ) {
                             Icon(
                                 imageVector = Icons.Filled.Edit,
                                 contentDescription = "Editar",
@@ -153,7 +153,10 @@ fun SubjectManageSection(
                             )
                         }
 
-                        IconButton(onClick = { onToggleArchive(subject) }) {
+                        IconButton(
+                            onClick = { onToggleArchive(subject) },
+                            modifier = Modifier.size(36.dp)
+                        ) {
                             Icon(
                                 imageVector = if (subject.isArchived) Icons.Filled.Unarchive else Icons.Filled.Archive,
                                 contentDescription = if (subject.isArchived) "Desarchivar" else "Archivar",

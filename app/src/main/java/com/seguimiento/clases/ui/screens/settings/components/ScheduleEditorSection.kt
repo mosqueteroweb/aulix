@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.dao.SessionWithSubjectInfo
 import com.seguimiento.clases.data.local.entity.ScheduleSessionEntity
 import com.seguimiento.clases.data.local.entity.SubjectEntity
+import com.seguimiento.clases.ui.components.SubjectBadge
 import com.seguimiento.clases.ui.theme.parseColor
 
 @Composable
@@ -115,7 +116,6 @@ fun ScheduleEditorSection(
                 sessions.forEachIndexed { index, item ->
                     val subject = item.subject
                     val session = item.session
-                    val color = parseColor(subject.colorHex)
 
                     Surface(
                         modifier = Modifier
@@ -138,20 +138,11 @@ fun ScheduleEditorSection(
                                 modifier = Modifier.width(28.dp)
                             )
 
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .background(color),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = subject.code,
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            SubjectBadge(
+                                code = subject.code,
+                                colorHex = subject.colorHex,
+                                size = 32.dp
+                            )
 
                             Spacer(modifier = Modifier.width(10.dp))
 
@@ -236,7 +227,6 @@ fun AddSessionDialog(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 activeSubjects.forEach { subject ->
-                    val color = parseColor(subject.colorHex)
                     OutlinedCard(
                         onClick = { onSelect(subject.id) },
                         modifier = Modifier.fillMaxWidth(),
@@ -248,20 +238,11 @@ fun AddSessionDialog(
                                 .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .background(color),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = subject.code,
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            SubjectBadge(
+                                code = subject.code,
+                                colorHex = subject.colorHex,
+                                size = 30.dp
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = subject.code + if (subject.name.isNotBlank()) " - ${subject.name}" else "",

@@ -11,8 +11,8 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 
@@ -124,7 +124,7 @@ fun BackupSection(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 // Botón Exportar
                 FilledTonalButton(
@@ -133,6 +133,7 @@ fun BackupSection(
                         exportLauncher.launch("seguimiento_clases_backup_$today.json")
                     },
                     modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Icon(
@@ -141,7 +142,13 @@ fun BackupSection(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Exportar")
+                    Text(
+                        text = "Exportar",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
 
                 // Botón Importar
@@ -150,6 +157,7 @@ fun BackupSection(
                         importLauncher.launch(arrayOf("application/json", "text/*"))
                     },
                     modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Icon(
@@ -158,7 +166,13 @@ fun BackupSection(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Restaurar")
+                    Text(
+                        text = "Restaurar",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
         }

@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
+import com.seguimiento.clases.ui.components.SubjectBadge
 import com.seguimiento.clases.ui.screens.today.SessionCardUiState
 import com.seguimiento.clases.ui.theme.parseColor
 
@@ -37,7 +38,6 @@ fun ClassSessionCard(
     modifier: Modifier = Modifier
 ) {
     val subject = cardState.session.subject
-    val subjectColor = parseColor(subject.colorHex)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -58,20 +58,11 @@ fun ClassSessionCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Badge de color con las siglas
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(subjectColor),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = subject.code,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                SubjectBadge(
+                    code = subject.code,
+                    colorHex = subject.colorHex,
+                    size = 46.dp
+                )
 
                 Spacer(modifier = Modifier.width(12.dp))
 
@@ -79,7 +70,9 @@ fun ClassSessionCard(
                     Text(
                         text = subject.code,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        softWrap = false
                     )
                     if (subject.name.isNotBlank() && subject.name != subject.code) {
                         Text(
@@ -95,7 +88,7 @@ fun ClassSessionCard(
                 // Acceso directo a historial completo de la asignatura
                 TextButton(
                     onClick = onNavigateToHistory,
-                    contentPadding = PaddingValues(horizontal = 8.dp)
+                    contentPadding = PaddingValues(horizontal = 6.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.History,
@@ -103,7 +96,11 @@ fun ClassSessionCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Historial")
+                    Text(
+                        text = "Historial",
+                        maxLines = 1,
+                        softWrap = false
+                    )
                 }
             }
 
@@ -154,6 +151,7 @@ fun ClassSessionCard(
             ) {
                 FilledTonalButton(
                     onClick = onOpenIdeasBottomSheet,
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     colors = ButtonDefaults.filledTonalButtonColors(
                         containerColor = if (ideasCount > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
                     ),
@@ -167,7 +165,10 @@ fun ClassSessionCard(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = if (ideasCount > 0) "$ideasCount ideas pendientes" else "Ideas pendientes",
-                        style = MaterialTheme.typography.labelLarge
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
