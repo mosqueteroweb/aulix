@@ -14,7 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.IdeaEntity
 import com.seguimiento.clases.data.local.entity.SubjectEntity
@@ -38,14 +40,17 @@ fun PendingIdeasBottomSheet(
 
     // Diálogo para editar idea
     if (editingIdea != null) {
-        var editText by remember(editingIdea) { mutableStateOf(editingIdea?.text ?: "") }
+        val initialText = editingIdea?.text ?: ""
+        var editValue by remember(editingIdea) {
+            mutableStateOf(TextFieldValue(initialText, TextRange(initialText.length)))
+        }
         AlertDialog(
             onDismissRequest = { editingIdea = null },
             title = { Text("Editar idea") },
             text = {
                 OutlinedTextField(
-                    value = editText,
-                    onValueChange = { editText = it },
+                    value = editValue,
+                    onValueChange = { editValue = it },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     shape = RoundedCornerShape(10.dp)
@@ -54,10 +59,10 @@ fun PendingIdeasBottomSheet(
             confirmButton = {
                 Button(
                     onClick = {
-                        editingIdea?.let { onEditIdea(it.id, editText) }
+                        editingIdea?.let { onEditIdea(it.id, editValue.text.trim()) }
                         editingIdea = null
                     },
-                    enabled = editText.isNotBlank()
+                    enabled = editValue.text.isNotBlank()
                 ) {
                     Text("Guardar")
                 }

@@ -101,7 +101,7 @@ fun TodayScreen(
                 ) {
                     items(
                         items = uiState.sessions,
-                        key = { it.session.session.id }
+                        key = { "${uiState.selectedDate}_${it.session.session.id}" }
                     ) { cardState ->
                         val subjectId = cardState.session.subject.id
                         ClassSessionCard(

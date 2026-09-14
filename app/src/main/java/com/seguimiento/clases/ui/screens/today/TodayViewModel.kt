@@ -36,6 +36,13 @@ data class TodayUiState(
     val activeBottomSheetSubjectId: Long? = null // Para el BottomSheet de ideas
 )
 
+private data class SessionDbData(
+    val session: SessionWithSubjectInfo,
+    val savedLog: ClassLogEntity?,
+    val recentPriorLogs: List<ClassLogEntity>,
+    val pendingIdeas: List<IdeaEntity>
+)
+
 class TodayViewModel(
     private val repository: ClassRepository
 ) : ViewModel() {
@@ -63,17 +70,45 @@ class TodayViewModel(
 
     private val spanishLocale = Locale("es", "ES")
 
+    // Flujo de datos persistentes (sesiones, logs guardados, logs previos e ideas)
+    // Solo reacciona a cambios de fecha seleccionada o cambios en la base de datos Room,
+    // NUNCA se reinicia ni re-consulta Room al escribir en las cajas de texto.
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    private val _dbDataFlow: Flow<List<SessionDbData>> = _selectedDate.flatMapLatest { date ->
+        val dayOfWeek = date.dayOfWeek.value
+        val dateString = date.toString()
+        repository.getSessionsForDay(dayOfWeek).flatMapLatest { sessionsList ->
+            if (sessionsList.isEmpty()) {
+                flowOf(emptyList())
+            } else {
+                val sessionFlows = sessionsList.map { sessionInfo ->
+                    val subjectId = sessionInfo.subject.id
+                    combine(
+                        repository.getLogForSubjectAndDate(subjectId, dateString),
+                        repository.getRecentLogsPriorToDate(subjectId, dateString, limit = 3),
+                        repository.getPendingIdeasForSubject(subjectId)
+                    ) { currentLog, priorLogs, pendingIdeas ->
+                        SessionDbData(
+                            session = sessionInfo,
+                            savedLog = currentLog,
+                            recentPriorLogs = priorLogs,
+                            pendingIdeas = pendingIdeas
+                        )
+                    }
+                }
+                combine(sessionFlows) { it.toList() }
+            }
+        }
+    }
+
     val uiState: StateFlow<TodayUiState> = combine(
         _selectedDate,
+        _dbDataFlow,
         _expandedSubjectIds,
         _draftLogs,
         _activeBottomSheetSubjectId
-    ) { date, expandedIds, drafts, bottomSheetId ->
-        Tuple4(date, expandedIds, drafts, bottomSheetId)
-    }.flatMapLatest { (date, expandedIds, drafts, bottomSheetId) ->
+    ) { date, dbSessions, expandedIds, drafts, bottomSheetId ->
         val dayOfWeek = date.dayOfWeek.value // 1 = Lunes, 5 = Viernes
-        val dateString = date.toString() // "YYYY-MM-DD"
         val currentSchoolToday = adjustToWeekday(LocalDate.now())
         val isToday = date.isEqual(currentSchoolToday)
 
@@ -82,56 +117,31 @@ class TodayViewModel(
         val dateSubtitle = date.format(DateTimeFormatter.ofPattern("d 'de' MMMM", spanishLocale))
         val formattedDate = "$dayName, $dateSubtitle"
 
-        repository.getSessionsForDay(dayOfWeek).flatMapLatest { sessionsList ->
-            if (sessionsList.isEmpty()) {
-                flowOf(
-                    TodayUiState(
-                        selectedDate = date,
-                        dayOfWeek = dayOfWeek,
-                        isToday = isToday,
-                        dayName = dayName,
-                        dateSubtitle = dateSubtitle,
-                        formattedDate = formattedDate,
-                        sessions = emptyList(),
-                        isLoading = false,
-                        activeBottomSheetSubjectId = bottomSheetId
-                    )
-                )
-            } else {
-                // Para cada sesión combinamos su log actual, logs previos e ideas pendientes
-                val sessionFlows = sessionsList.map { sessionInfo ->
-                    val subjectId = sessionInfo.subject.id
-                    combine(
-                        repository.getLogForSubjectAndDate(subjectId, dateString),
-                        repository.getRecentLogsPriorToDate(subjectId, dateString, limit = 3),
-                        repository.getPendingIdeasForSubject(subjectId)
-                    ) { currentLog, priorLogs, pendingIdeas ->
-                        val text = drafts[subjectId] ?: currentLog?.content ?: ""
-                        SessionCardUiState(
-                            session = sessionInfo,
-                            currentLogContent = text,
-                            recentPriorLogs = priorLogs,
-                            pendingIdeas = pendingIdeas,
-                            isExpandedPriorLogs = expandedIds.contains(subjectId)
-                        )
-                    }
-                }
-
-                combine(sessionFlows) { cardsArray ->
-                    TodayUiState(
-                        selectedDate = date,
-                        dayOfWeek = dayOfWeek,
-                        isToday = isToday,
-                        dayName = dayName,
-                        dateSubtitle = dateSubtitle,
-                        formattedDate = formattedDate,
-                        sessions = cardsArray.toList(),
-                        isLoading = false,
-                        activeBottomSheetSubjectId = bottomSheetId
-                    )
-                }
-            }
+        val cardStates = dbSessions.map { dbItem ->
+            val subjectId = dbItem.session.subject.id
+            // Si hay un borrador activo escrito por el usuario en memoria, se usa de inmediato;
+            // si no, se muestra el contenido guardado en Room.
+            val text = drafts[subjectId] ?: dbItem.savedLog?.content ?: ""
+            SessionCardUiState(
+                session = dbItem.session,
+                currentLogContent = text,
+                recentPriorLogs = dbItem.recentPriorLogs,
+                pendingIdeas = dbItem.pendingIdeas,
+                isExpandedPriorLogs = expandedIds.contains(subjectId)
+            )
         }
+
+        TodayUiState(
+            selectedDate = date,
+            dayOfWeek = dayOfWeek,
+            isToday = isToday,
+            dayName = dayName,
+            dateSubtitle = dateSubtitle,
+            formattedDate = formattedDate,
+            sessions = cardStates,
+            isLoading = false,
+            activeBottomSheetSubjectId = bottomSheetId
+        )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),

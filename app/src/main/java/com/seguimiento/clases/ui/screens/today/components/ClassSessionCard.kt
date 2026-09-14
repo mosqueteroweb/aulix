@@ -24,7 +24,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
@@ -48,7 +50,30 @@ fun ClassSessionCard(
     dayOfWeek: Int = 1
 ) {
     val subject = cardState.session.subject
+    val sessionId = cardState.session.session.id
+    val subjectId = subject.id
     var showClearConfirmDialog by remember { mutableStateOf(false) }
+
+    // Control preciso de cursor y selección mediante TextFieldValue
+    var textFieldValue by remember(sessionId, subjectId, dayOfWeek) {
+        mutableStateOf(
+            TextFieldValue(
+                text = cardState.currentLogContent,
+                selection = TextRange(cardState.currentLogContent.length)
+            )
+        )
+    }
+
+    // Sincronizar solo cuando el texto cambie desde el exterior (ej. carga Room o borrado),
+    // sin reescribir la posición del cursor si el texto coincide con lo que el usuario está tecleando.
+    LaunchedEffect(cardState.currentLogContent) {
+        if (cardState.currentLogContent != textFieldValue.text) {
+            textFieldValue = textFieldValue.copy(
+                text = cardState.currentLogContent,
+                selection = TextRange(cardState.currentLogContent.length)
+            )
+        }
+    }
 
     if (showClearConfirmDialog) {
         AlertDialog(
@@ -58,6 +83,7 @@ fun ClassSessionCard(
             confirmButton = {
                 Button(
                     onClick = {
+                        textFieldValue = TextFieldValue("", TextRange.Zero)
                         onClearCurrentLog()
                         showClearConfirmDialog = false
                     },
@@ -170,7 +196,7 @@ fun ClassSessionCard(
                     fontWeight = FontWeight.SemiBold
                 )
 
-                if (cardState.currentLogContent.isNotBlank()) {
+                if (cardState.currentLogContent.isNotBlank() || textFieldValue.text.isNotBlank()) {
                     TextButton(
                         onClick = { showClearConfirmDialog = true },
                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
@@ -194,8 +220,13 @@ fun ClassSessionCard(
             Spacer(modifier = Modifier.height(6.dp))
 
             OutlinedTextField(
-                value = cardState.currentLogContent,
-                onValueChange = onContentChange,
+                value = textFieldValue,
+                onValueChange = { newValue ->
+                    textFieldValue = newValue
+                    if (newValue.text != cardState.currentLogContent) {
+                        onContentChange(newValue.text)
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
                     Text(

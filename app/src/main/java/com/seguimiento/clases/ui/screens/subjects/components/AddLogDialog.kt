@@ -8,6 +8,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
 import java.time.Instant
@@ -25,8 +27,9 @@ fun AddEditLogDialog(
     var dateString by remember {
         mutableStateOf(initialLog?.date ?: LocalDate.now().toString())
     }
-    var content by remember {
-        mutableStateOf(initialLog?.content ?: "")
+    var contentValue by remember(initialLog) {
+        val initialText = initialLog?.content ?: ""
+        mutableStateOf(TextFieldValue(initialText, TextRange(initialText.length)))
     }
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -112,8 +115,8 @@ fun AddEditLogDialog(
 
                 // Contenido de la clase
                 OutlinedTextField(
-                    value = content,
-                    onValueChange = { content = it },
+                    value = contentValue,
+                    onValueChange = { contentValue = it },
                     label = { Text("Lo visto en clase") },
                     placeholder = { Text("Detalla los temas tratados...") },
                     modifier = Modifier.fillMaxWidth(),
@@ -126,12 +129,12 @@ fun AddEditLogDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    if (content.isNotBlank()) {
-                        onSave(dateString, content)
+                    if (contentValue.text.isNotBlank()) {
+                        onSave(dateString, contentValue.text.trim())
                         onDismiss()
                     }
                 },
-                enabled = content.isNotBlank()
+                enabled = contentValue.text.isNotBlank()
             ) {
                 Text("Guardar")
             }

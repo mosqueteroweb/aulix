@@ -14,7 +14,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.SubjectEntity
@@ -32,8 +34,12 @@ fun SubjectManageSection(
 
     if (subjectToEdit != null) {
         val currentSubject = subjectToEdit!!
-        var code by remember(currentSubject) { mutableStateOf(currentSubject.code) }
-        var name by remember(currentSubject) { mutableStateOf(currentSubject.name) }
+        var codeValue by remember(currentSubject) {
+            mutableStateOf(TextFieldValue(currentSubject.code, TextRange(currentSubject.code.length)))
+        }
+        var nameValue by remember(currentSubject) {
+            mutableStateOf(TextFieldValue(currentSubject.name, TextRange(currentSubject.name.length)))
+        }
 
         AlertDialog(
             onDismissRequest = { subjectToEdit = null },
@@ -41,16 +47,20 @@ fun SubjectManageSection(
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
-                        value = code,
-                        onValueChange = { code = it.take(8) },
+                        value = codeValue,
+                        onValueChange = {
+                            if (it.text.length <= 8) {
+                                codeValue = it
+                            }
+                        },
                         label = { Text("Siglas") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
+                        value = nameValue,
+                        onValueChange = { nameValue = it },
                         label = { Text("Nombre descriptivo") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -60,10 +70,10 @@ fun SubjectManageSection(
             confirmButton = {
                 Button(
                     onClick = {
-                        onUpdateSubject(currentSubject, code, name)
+                        onUpdateSubject(currentSubject, codeValue.text.trim(), nameValue.text.trim())
                         subjectToEdit = null
                     },
-                    enabled = code.isNotBlank()
+                    enabled = codeValue.text.isNotBlank()
                 ) {
                     Text("Guardar")
                 }
