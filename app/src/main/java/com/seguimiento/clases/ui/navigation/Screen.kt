@@ -1,9 +1,11 @@
 package com.seguimiento.clases.ui.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.Settings
@@ -29,6 +31,13 @@ sealed class Screen(
         unselectedIcon = Icons.Outlined.School
     )
 
+    object Alarm : Screen(
+        route = "alarm",
+        title = "Alarma",
+        selectedIcon = Icons.Filled.Alarm,
+        unselectedIcon = Icons.Outlined.Alarm
+    )
+
     object Settings : Screen(
         route = "settings",
         title = "Ajustes",
@@ -44,6 +53,6 @@ sealed class Screen(
     }
 
     companion object {
-        val bottomNavItems = listOf(Today, Subjects, Settings)
+        val bottomNavItems = listOf(Today, Subjects, Alarm, Settings)
     }
 }

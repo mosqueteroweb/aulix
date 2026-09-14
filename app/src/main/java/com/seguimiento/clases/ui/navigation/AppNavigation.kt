@@ -20,6 +20,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.seguimiento.clases.data.repository.ClassRepository
+import android.app.Application
+import androidx.compose.ui.platform.LocalContext
+import com.seguimiento.clases.ui.screens.alarm.AlarmScreen
+import com.seguimiento.clases.ui.screens.alarm.AlarmViewModel
 import com.seguimiento.clases.ui.screens.settings.SettingsScreen
 import com.seguimiento.clases.ui.screens.settings.SettingsViewModel
 import com.seguimiento.clases.ui.screens.subjects.SubjectDetailScreen
@@ -130,6 +134,17 @@ fun AppNavigation(
                 SubjectDetailScreen(
                     viewModel = detailViewModel,
                     onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // Pantalla Alarma
+            composable(Screen.Alarm.route) {
+                val context = LocalContext.current
+                val alarmViewModel: AlarmViewModel = viewModel(
+                    factory = AlarmViewModel.provideFactory(context.applicationContext as Application)
+                )
+                AlarmScreen(
+                    viewModel = alarmViewModel
                 )
             }
 
