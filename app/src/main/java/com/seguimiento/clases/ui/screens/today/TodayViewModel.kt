@@ -26,6 +26,7 @@ data class SessionCardUiState(
 
 data class TodayUiState(
     val selectedDate: LocalDate = LocalDate.now(),
+    val dayOfWeek: Int = 1,
     val isToday: Boolean = true,
     val dayName: String = "",
     val dateSubtitle: String = "",
@@ -86,6 +87,7 @@ class TodayViewModel(
                 flowOf(
                     TodayUiState(
                         selectedDate = date,
+                        dayOfWeek = dayOfWeek,
                         isToday = isToday,
                         dayName = dayName,
                         dateSubtitle = dateSubtitle,
@@ -118,6 +120,7 @@ class TodayViewModel(
                 combine(sessionFlows) { cardsArray ->
                     TodayUiState(
                         selectedDate = date,
+                        dayOfWeek = dayOfWeek,
                         isToday = isToday,
                         dayName = dayName,
                         dateSubtitle = dateSubtitle,

@@ -17,10 +17,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.isSystemInDarkTheme
 import com.seguimiento.clases.data.local.dao.SessionWithSubjectInfo
 import com.seguimiento.clases.data.local.entity.ScheduleSessionEntity
 import com.seguimiento.clases.data.local.entity.SubjectEntity
 import com.seguimiento.clases.ui.components.SubjectBadge
+import com.seguimiento.clases.ui.theme.DayThemes
 import com.seguimiento.clases.ui.theme.parseColor
 
 @Composable
@@ -35,14 +38,6 @@ fun ScheduleEditorSection(
     onMoveDown: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val days = listOf(
-        1 to "Lunes",
-        2 to "Martes",
-        3 to "Miércoles",
-        4 to "Jueves",
-        5 to "Viernes"
-    )
-
     var showAddDialog by remember { mutableStateOf(false) }
 
     if (showAddDialog) {
@@ -77,24 +72,81 @@ fun ScheduleEditorSection(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Selector de día
+            // Selector de día con 1 letra por botón (L, M, X, J, V) y colores de alto contraste
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                days.forEach { (dayInt, label) ->
-                    val isSelected = dayInt == selectedDay
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onSelectDay(dayInt) },
-                        label = {
+                DayThemes.allDays.forEach { config ->
+                    val isSelected = config.dayOfWeek == selectedDay
+                    val isDark = isSystemInDarkTheme()
+                    val accent = if (isDark) config.accentDark else config.accentLight
+
+                    Surface(
+                        onClick = { onSelectDay(config.dayOfWeek) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(46.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) {
+                            config.solidColor
+                        } else {
+                            if (isDark) Color(0xFF20232B) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                        },
+                        border = BorderStroke(
+                            width = if (isSelected) 2.dp else 1.dp,
+                            color = if (isSelected) config.solidColor else accent.copy(alpha = 0.4f)
+                        ),
+                        tonalElevation = if (isSelected) 4.dp else 0.dp
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(
-                                text = label.take(3),
-                                style = MaterialTheme.typography.labelMedium
+                                text = config.letter,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (isSelected) Color.White else accent
                             )
                         }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Subcabecera descriptiva del día seleccionado con indicador de color y contraste verificado
+            val currentDayConfig = DayThemes.forDay(selectedDay)
+            val isDarkTheme = isSystemInDarkTheme()
+            val currentDayAccent = if (isDarkTheme) currentDayConfig.accentDark else currentDayConfig.accentLight
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(currentDayConfig.solidColor)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = currentDayConfig.name,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = currentDayAccent
                     )
                 }
+
+                Text(
+                    text = "${sessions.size} ${if (sessions.size == 1) "sesión" else "sesiones"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -134,7 +186,7 @@ fun ScheduleEditorSection(
                                 text = "${index + 1}ª",
                                 style = MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = currentDayAccent,
                                 modifier = Modifier.width(28.dp)
                             )
 

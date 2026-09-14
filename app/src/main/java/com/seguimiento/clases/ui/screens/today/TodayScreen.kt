@@ -33,6 +33,7 @@ fun TodayScreen(
             DateNavigationHeader(
                 dayName = uiState.dayName,
                 dateSubtitle = uiState.dateSubtitle,
+                dayOfWeek = uiState.dayOfWeek,
                 isToday = uiState.isToday,
                 onPreviousDay = { viewModel.onPreviousDay() },
                 onNextDay = { viewModel.onNextDay() },

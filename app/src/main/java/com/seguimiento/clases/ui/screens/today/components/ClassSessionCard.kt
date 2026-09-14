@@ -214,7 +214,8 @@ fun ClassSessionCard(
                     onClick = onOpenIdeasBottomSheet,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = if (ideasCount > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                        containerColor = if (ideasCount > 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (ideasCount > 0) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
                     ),
                     shape = RoundedCornerShape(8.dp)
                 ) {

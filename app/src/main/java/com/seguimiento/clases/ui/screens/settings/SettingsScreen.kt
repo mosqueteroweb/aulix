@@ -100,7 +100,7 @@ fun SettingsScreen(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Versión 0.1.2 • 100% Sin conexión • Almacenamiento local SQLite/Room.",
+                        text = "Versión 0.1.3 • 100% Sin conexión • Almacenamiento local SQLite/Room.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

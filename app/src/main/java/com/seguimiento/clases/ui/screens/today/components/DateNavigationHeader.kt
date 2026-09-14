@@ -17,10 +17,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.seguimiento.clases.ui.theme.DayThemes
+
 @Composable
 fun DateNavigationHeader(
     dayName: String,
     dateSubtitle: String,
+    dayOfWeek: Int = 1,
     isToday: Boolean,
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
@@ -28,6 +32,9 @@ fun DateNavigationHeader(
     modifier: Modifier = Modifier,
     formattedDate: String = ""
 ) {
+    val dayConfig = DayThemes.forDay(dayOfWeek)
+    val dayAccent = if (isSystemInDarkTheme()) dayConfig.accentDark else dayConfig.accentLight
+
     Surface(
         modifier = modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
@@ -63,6 +70,7 @@ fun DateNavigationHeader(
                         text = dayName.ifBlank { formattedDate },
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
+                        color = dayAccent,
                         textAlign = TextAlign.Center,
                         maxLines = 1
                     )

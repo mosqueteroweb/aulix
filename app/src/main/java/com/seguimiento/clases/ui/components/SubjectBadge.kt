@@ -25,6 +25,8 @@ fun SubjectBadge(
     isArchived: Boolean = false
 ) {
     val backgroundColor = if (isArchived) Color(0xFF64748B) else parseColor(colorHex)
+    val luminance = 0.299f * backgroundColor.red + 0.587f * backgroundColor.green + 0.114f * backgroundColor.blue
+    val textColor = if (luminance > 0.55f) Color(0xFF0F172A) else Color.White
 
     // Ajuste proporcional y preciso de tipografía para evitar desbordamientos o saltos de línea
     val fontSize = when {
@@ -42,7 +44,7 @@ fun SubjectBadge(
     ) {
         Text(
             text = code,
-            color = Color.White,
+            color = textColor,
             fontSize = fontSize,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
