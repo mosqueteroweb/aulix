@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,12 +51,151 @@ fun ClassSessionCard(
     onDeletePriorLog: (log: ClassLogEntity) -> Unit,
     onNavigateToHistory: () -> Unit,
     onOpenIdeasBottomSheet: () -> Unit,
+    onToggleCompleted: () -> Unit,
     modifier: Modifier = Modifier,
     dayOfWeek: Int = 1
 ) {
     val subject = cardState.session.subject
     val sessionId = cardState.session.session.id
     val subjectId = subject.id
+
+    // Si la tarjeta está completada, se muestra compacta como en el historial
+    if (cardState.isCompleted) {
+        var showEditCompletedDialog by remember { mutableStateOf(false) }
+
+        if (showEditCompletedDialog) {
+            AddEditLogDialog(
+                initialLog = ClassLogEntity(
+                    subjectId = subjectId,
+                    date = "",
+                    content = cardState.currentLogContent
+                ),
+                onDismiss = { showEditCompletedDialog = false },
+                onSave = { _, newContent ->
+                    onContentChange(newContent)
+                    showEditCompletedDialog = false
+                }
+            )
+        }
+
+        Card(
+            modifier = modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp)
+            ) {
+                // Cabecera: Siglas, Nombre, Insignia Impartida, Editar, Historial y Check verde
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SubjectBadge(
+                        code = subject.code,
+                        colorHex = subject.colorHex,
+                        size = 38.dp
+                    )
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = subject.code,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF10B981).copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "Impartida",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF10B981),
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        if (subject.name.isNotBlank() && subject.name != subject.code) {
+                            Text(
+                                text = subject.name,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+
+                    IconButton(
+                        onClick = { showEditCompletedDialog = true },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Edit,
+                            contentDescription = "Editar anotación",
+                            modifier = Modifier.size(17.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onNavigateToHistory,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.History,
+                            contentDescription = "Ver historial",
+                            modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    IconButton(
+                        onClick = onToggleCompleted,
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.CheckCircle,
+                            contentDescription = "Desmarcar clase (volver a pendiente)",
+                            tint = Color(0xFF10B981),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                SelectionContainer {
+                    Text(
+                        text = cardState.currentLogContent.ifBlank { "Clase completada sin anotación." },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (cardState.currentLogContent.isNotBlank())
+                            MaterialTheme.colorScheme.onSurface
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontStyle = if (cardState.currentLogContent.isBlank())
+                            FontStyle.Italic
+                        else
+                            FontStyle.Normal
+                    )
+                }
+            }
+        }
+        return
+    }
+
     var showClearConfirmDialog by remember { mutableStateOf(false) }
 
     // Control preciso de cursor y selección mediante TextFieldValue
@@ -168,6 +310,21 @@ fun ClassSessionCard(
                         text = "Historial",
                         maxLines = 1,
                         softWrap = false
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(4.dp))
+
+                // Check para marcar como impartida / completada
+                IconButton(
+                    onClick = onToggleCompleted,
+                    modifier = Modifier.size(38.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.CheckCircle,
+                        contentDescription = "Marcar clase como completada",
+                        tint = MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }

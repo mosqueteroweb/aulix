@@ -52,6 +52,7 @@ class BackupSerializationTest {
 
         assertEquals("DI", decodedBackup.subjects[0].code)
         assertEquals("Introducción al diseño y accesibilidad", decodedBackup.classLogs[0].content)
+        assertFalse(decodedBackup.classLogs[0].isCompleted)
         assertEquals("Práctica con Figma y Compose", decodedBackup.ideas[0].text)
         assertFalse(decodedBackup.ideas[0].isUsed)
     }

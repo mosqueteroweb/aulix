@@ -37,6 +37,7 @@ data class BackupClassLog(
     val subjectId: Long,
     val date: String,
     val content: String,
+    val isCompleted: Boolean = false,
     val updatedAt: Long
 )
 

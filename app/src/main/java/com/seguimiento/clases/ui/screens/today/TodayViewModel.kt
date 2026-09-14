@@ -21,7 +21,8 @@ data class SessionCardUiState(
     val currentLogContent: String = "",
     val recentPriorLogs: List<ClassLogEntity> = emptyList(),
     val pendingIdeas: List<IdeaEntity> = emptyList(),
-    val isExpandedPriorLogs: Boolean = false
+    val isExpandedPriorLogs: Boolean = false,
+    val isCompleted: Boolean = false
 )
 
 data class TodayUiState(
@@ -122,14 +123,19 @@ class TodayViewModel(
             // Si hay un borrador activo escrito por el usuario en memoria, se usa de inmediato;
             // si no, se muestra el contenido guardado en Room.
             val text = drafts[subjectId] ?: dbItem.savedLog?.content ?: ""
+            val isCompleted = dbItem.savedLog?.isCompleted ?: false
             SessionCardUiState(
                 session = dbItem.session,
                 currentLogContent = text,
                 recentPriorLogs = dbItem.recentPriorLogs,
                 pendingIdeas = dbItem.pendingIdeas,
-                isExpandedPriorLogs = expandedIds.contains(subjectId)
+                isExpandedPriorLogs = expandedIds.contains(subjectId),
+                isCompleted = isCompleted
             )
-        }
+        }.sortedWith(
+            compareBy<SessionCardUiState> { it.isCompleted } // false primero, true al final
+                .thenBy { it.session.session.orderIndex }
+        )
 
         TodayUiState(
             selectedDate = date,
@@ -213,6 +219,14 @@ class TodayViewModel(
         val dateString = _selectedDate.value.toString()
         viewModelScope.launch {
             repository.deleteLogForSubjectAndDate(subjectId, dateString)
+        }
+    }
+
+    fun toggleSessionCompleted(subjectId: Long) {
+        val dateString = _selectedDate.value.toString()
+        val currentDraft = _draftLogs.value[subjectId]
+        viewModelScope.launch {
+            repository.toggleLogCompleted(subjectId, dateString, currentDraft)
         }
     }
 

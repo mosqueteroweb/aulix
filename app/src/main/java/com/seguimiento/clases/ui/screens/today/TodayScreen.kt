@@ -1,5 +1,6 @@
 package com.seguimiento.clases.ui.screens.today
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +20,7 @@ import com.seguimiento.clases.ui.screens.today.components.ClassSessionCard
 import com.seguimiento.clases.ui.screens.today.components.DateNavigationHeader
 import com.seguimiento.clases.ui.screens.today.components.PendingIdeasBottomSheet
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TodayScreen(
     viewModel: TodayViewModel,
@@ -128,7 +130,11 @@ fun TodayScreen(
                             },
                             onOpenIdeasBottomSheet = {
                                 viewModel.openBottomSheetForSubject(subjectId)
-                            }
+                            },
+                            onToggleCompleted = {
+                                viewModel.toggleSessionCompleted(subjectId)
+                            },
+                            modifier = Modifier.animateItemPlacement()
                         )
                     }
                 }

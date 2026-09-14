@@ -26,5 +26,6 @@ data class ClassLogEntity(
     val subjectId: Long,
     val date: String, // Formato "YYYY-MM-DD"
     val content: String, // «Lo visto en clase»
+    val isCompleted: Boolean = false, // Indica si la clase fue impartida/completada
     val updatedAt: Long = System.currentTimeMillis()
 )

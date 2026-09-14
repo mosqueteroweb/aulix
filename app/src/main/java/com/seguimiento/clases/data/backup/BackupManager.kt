@@ -61,6 +61,7 @@ class BackupManager(
                         subjectId = it.subjectId,
                         date = it.date,
                         content = it.content,
+                        isCompleted = it.isCompleted,
                         updatedAt = it.updatedAt
                     )
                 },
@@ -143,6 +144,7 @@ class BackupManager(
                         subjectId = it.subjectId,
                         date = it.date,
                         content = it.content,
+                        isCompleted = it.isCompleted,
                         updatedAt = it.updatedAt
                     )
                 }

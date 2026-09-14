@@ -98,6 +98,31 @@ class ClassRepository(
         classLogDao.upsertLog(log)
     }
 
+    suspend fun toggleLogCompleted(subjectId: Long, date: String, draftContent: String? = null) {
+        val existing = classLogDao.getLogForSubjectAndDateOnce(subjectId, date)
+        if (existing != null) {
+            val newContent = draftContent ?: existing.content
+            classLogDao.upsertLog(
+                existing.copy(
+                    content = newContent,
+                    isCompleted = !existing.isCompleted,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        } else {
+            val content = draftContent ?: ""
+            classLogDao.upsertLog(
+                ClassLogEntity(
+                    subjectId = subjectId,
+                    date = date,
+                    content = content,
+                    isCompleted = true,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
+        }
+    }
+
     suspend fun deleteClassLog(log: ClassLogEntity) = classLogDao.deleteLog(log)
     suspend fun deleteClassLogById(id: Long) = classLogDao.deleteLogById(id)
     suspend fun deleteLogForSubjectAndDate(subjectId: Long, date: String) =
