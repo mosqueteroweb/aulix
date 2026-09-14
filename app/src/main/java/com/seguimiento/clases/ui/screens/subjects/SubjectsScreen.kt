@@ -48,7 +48,7 @@ fun SubjectsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Asignaturas",
+                        text = "Módulos",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
@@ -57,7 +57,7 @@ fun SubjectsScreen(
         },
         floatingActionButton = {
             FloatingActionButton(onClick = { showCreateDialog = true }) {
-                Icon(Icons.Filled.Add, contentDescription = "Añadir asignatura")
+                Icon(Icons.Filled.Add, contentDescription = "Añadir módulo")
             }
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -77,7 +77,7 @@ fun SubjectsScreen(
             ) {
                 item {
                     Text(
-                        text = "Activas (${uiState.activeSubjects.size})",
+                        text = "Activos (${uiState.activeSubjects.size})",
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -95,7 +95,7 @@ fun SubjectsScreen(
                     item {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Archivadas (${uiState.archivedSubjects.size})",
+                            text = "Archivados (${uiState.archivedSubjects.size})",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -198,7 +198,7 @@ fun CreateSubjectDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nueva Asignatura") },
+        title = { Text("Nuevo Módulo") },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(

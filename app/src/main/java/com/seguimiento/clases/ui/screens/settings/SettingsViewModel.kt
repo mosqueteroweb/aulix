@@ -99,14 +99,14 @@ class SettingsViewModel(
                     name = newName.trim()
                 )
             )
-            _feedbackMessage.value = "Asignatura actualizada"
+            _feedbackMessage.value = "Módulo actualizado"
         }
     }
 
     fun toggleArchiveSubject(subject: SubjectEntity) {
         viewModelScope.launch {
             repository.setSubjectArchived(subject.id, !subject.isArchived)
-            _feedbackMessage.value = if (!subject.isArchived) "Asignatura archivada" else "Asignatura desarchivada"
+            _feedbackMessage.value = if (!subject.isArchived) "Módulo archivado" else "Módulo desarchivado"
         }
     }
 

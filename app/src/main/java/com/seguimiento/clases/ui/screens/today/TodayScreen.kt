@@ -79,7 +79,7 @@ fun TodayScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "No tienes asignaturas en el horario para este día.",
+                        text = "No tienes módulos en el horario para este día.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.Center
@@ -92,7 +92,7 @@ fun TodayScreen(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Ver asignaturas")
+                        Text("Ver módulos")
                     }
                 }
             } else {

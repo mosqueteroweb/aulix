@@ -134,7 +134,7 @@ fun PendingIdeasBottomSheet(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "Asignatura: ${subject.code}${if (subject.name.isNotBlank()) " - ${subject.name}" else ""}",
+                        text = "Módulo: ${subject.code}${if (subject.name.isNotBlank()) " - ${subject.name}" else ""}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -212,7 +212,7 @@ fun PendingIdeasBottomSheet(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "No hay ideas pendientes para esta asignatura",
+                            text = "No hay ideas pendientes para este módulo",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

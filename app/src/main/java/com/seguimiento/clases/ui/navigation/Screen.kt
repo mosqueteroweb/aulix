@@ -26,7 +26,7 @@ sealed class Screen(
 
     object Subjects : Screen(
         route = "subjects",
-        title = "Asignaturas",
+        title = "Módulos",
         selectedIcon = Icons.Filled.School,
         unselectedIcon = Icons.Outlined.School
     )
@@ -47,7 +47,7 @@ sealed class Screen(
 
     object SubjectDetail : Screen(
         route = "subject_detail/{subjectId}",
-        title = "Detalle Asignatura"
+        title = "Detalle del Módulo"
     ) {
         fun createRoute(subjectId: Long): String = "subject_detail/$subjectId"
     }

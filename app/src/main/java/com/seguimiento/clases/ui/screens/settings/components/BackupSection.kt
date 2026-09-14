@@ -115,7 +115,7 @@ fun BackupSection(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Exporta o restaura tus asignaturas, horario, registros de clase e ideas en un archivo JSON local.",
+                text = "Exporta o restaura tus módulos, horario, registros de clase e ideas en un archivo JSON local.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

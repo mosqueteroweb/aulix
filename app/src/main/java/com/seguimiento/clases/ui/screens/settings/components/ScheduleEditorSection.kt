@@ -272,7 +272,7 @@ fun AddSessionDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Elegir asignatura") },
+        title = { Text("Elegir módulo") },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),

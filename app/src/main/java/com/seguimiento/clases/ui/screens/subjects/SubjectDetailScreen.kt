@@ -54,14 +54,14 @@ fun SubjectDetailScreen(
         AlertDialog(
             onDismissRequest = { showArchiveConfirmDialog = false },
             title = {
-                Text(if (subject.isArchived) "¿Desarchivar asignatura?" else "¿Archivar asignatura?")
+                Text(if (subject.isArchived) "¿Desarchivar módulo?" else "¿Archivar módulo?")
             },
             text = {
                 Text(
                     if (subject.isArchived)
-                        "La asignatura volverá a estar disponible en el horario y listas activas."
+                        "El módulo volverá a estar disponible en el horario y listas activas."
                     else
-                        "La asignatura dejará de mostrarse en el horario activo, pero se conservarán intactas todas sus anotaciones e ideas."
+                        "El módulo dejará de mostrarse en el horario activo, pero se conservarán intactas todas sus anotaciones e ideas."
                 )
             },
             confirmButton = {

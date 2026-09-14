@@ -43,7 +43,7 @@ fun SubjectManageSection(
 
         AlertDialog(
             onDismissRequest = { subjectToEdit = null },
-            title = { Text("Editar Asignatura") },
+            title = { Text("Editar Módulo") },
             text = {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
@@ -94,13 +94,13 @@ fun SubjectManageSection(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Gestión de asignaturas",
+                text = "Gestión de módulos",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Modifica nombres o archiva asignaturas sin perder sus anotaciones pasadas.",
+                text = "Modifica nombres o archiva módulos sin perder sus anotaciones pasadas.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -135,7 +135,7 @@ fun SubjectManageSection(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = subject.code + if (subject.isArchived) " (Archivada)" else "",
+                                text = subject.code + if (subject.isArchived) " (Archivado)" else "",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 maxLines = 1,
