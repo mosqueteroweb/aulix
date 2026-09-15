@@ -13,8 +13,8 @@ android {
         applicationId = "com.seguimiento.clases"
         minSdk = 26
         targetSdk = 34
-        versionCode = 13
-        versionName = "0.5.2"
+        versionCode = 14
+        versionName = "0.9.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

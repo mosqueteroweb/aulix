@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.text.selection.TextSelectionColors
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
@@ -18,9 +20,11 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.HistoryEdu
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lightbulb
+import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
 import com.seguimiento.clases.ui.components.SubjectBadge
 import com.seguimiento.clases.ui.screens.subjects.components.AddEditLogDialog
@@ -340,19 +345,6 @@ fun ClassSessionCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Sección: Última(s) anotación(es) anterior(es) (con selección de texto habilitada)
-            SelectionContainer {
-                PriorNotesSection(
-                    priorLogs = cardState.recentPriorLogs,
-                    isExpanded = cardState.isExpandedPriorLogs,
-                    onToggleExpand = onToggleExpandPrior,
-                    onEditLog = onEditPriorLog,
-                    onDeleteLog = onDeletePriorLog
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
             // Campo de texto: «Lo visto en clase»
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -413,6 +405,17 @@ fun ClassSessionCard(
                 minLines = 3,
                 maxLines = 8,
                 shape = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Sección: Última(s) anotación(es) anterior(es) (debajo de la caja de texto)
+            PriorNotesSection(
+                priorLogs = cardState.recentPriorLogs,
+                isExpanded = cardState.isExpandedPriorLogs,
+                onToggleExpand = onToggleExpandPrior,
+                onEditLog = onEditPriorLog,
+                onDeleteLog = onDeletePriorLog
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -478,6 +481,73 @@ private fun PriorNotesSection(
     val latest = priorLogs.first()
     var editingLog by remember { mutableStateOf<ClassLogEntity?>(null) }
     var logToDelete by remember { mutableStateOf<ClassLogEntity?>(null) }
+    var viewingFullLog by remember { mutableStateOf<ClassLogEntity?>(null) }
+
+    // Diálogo para ver la anotación en grande completa
+    if (viewingFullLog != null) {
+        val log = viewingFullLog!!
+        AlertDialog(
+            onDismissRequest = { viewingFullLog = null },
+            icon = {
+                Icon(
+                    imageVector = Icons.Filled.HistoryEdu,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Anotación de clase",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Sesión del ${log.date}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            },
+            text = {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 420.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        SelectionContainer {
+                            Text(
+                                text = log.content,
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontSize = 19.sp,
+                                    lineHeight = 28.sp
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { viewingFullLog = null },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Cerrar")
+                }
+            }
+        )
+    }
 
     if (editingLog != null) {
         AddEditLogDialog(
@@ -517,7 +587,10 @@ private fun PriorNotesSection(
     }
 
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable { viewingFullLog = latest },
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
     ) {
@@ -528,13 +601,24 @@ private fun PriorNotesSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Última clase (${latest.date}):",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f, fill = false)
-                )
+                ) {
+                    Text(
+                        text = "Última clase (${latest.date}):",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Icon(
+                        imageVector = Icons.Filled.OpenInFull,
+                        contentDescription = "Ver en grande",
+                        modifier = Modifier.size(13.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f)
+                    )
+                }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (priorLogs.size > 1) {
@@ -585,13 +669,19 @@ private fun PriorNotesSection(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Text(
-                text = latest.content,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = if (isExpanded) 10 else 2,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = latest.content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = if (isExpanded) 10 else 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            }
 
             // Desplegable de las 3 últimas
             AnimatedVisibility(
@@ -606,16 +696,28 @@ private fun PriorNotesSection(
                             color = MaterialTheme.colorScheme.outlineVariant
                         )
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewingFullLog = log }
+                                .padding(vertical = 2.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "Sesión ${log.date}:",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Sesión ${log.date}:",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Filled.OpenInFull,
+                                    contentDescription = "Ver en grande",
+                                    modifier = Modifier.size(12.dp),
+                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                )
+                            }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 IconButton(
@@ -646,7 +748,8 @@ private fun PriorNotesSection(
                         Text(
                             text = log.content,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.clickable { viewingFullLog = log }
                         )
                     }
                 }
