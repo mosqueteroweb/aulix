@@ -6,6 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import com.seguimiento.clases.MainActivity
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import java.util.Calendar
 
 class AlarmScheduler(private val context: Context) {
@@ -161,6 +164,19 @@ class AlarmScheduler(private val context: Context) {
             return false
         }
         return isActive
+    }
+
+    fun isAlarmActiveFlow(): Flow<Boolean> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == KEY_IS_ACTIVE || key == KEY_TRIGGER_MILLIS) {
+                trySend(isAlarmActive())
+            }
+        }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(isAlarmActive())
+        awaitClose {
+            prefs.unregisterOnSharedPreferenceChangeListener(listener)
+        }
     }
 
     fun getTriggerMillis(): Long = prefs.getLong(KEY_TRIGGER_MILLIS, 0L)

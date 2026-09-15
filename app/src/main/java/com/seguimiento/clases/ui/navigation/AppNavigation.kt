@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -21,7 +22,12 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.seguimiento.clases.data.repository.ClassRepository
 import android.app.Application
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import com.seguimiento.clases.alarm.AlarmScheduler
 import com.seguimiento.clases.ui.screens.alarm.AlarmScreen
 import com.seguimiento.clases.ui.screens.alarm.AlarmViewModel
 import com.seguimiento.clases.ui.screens.settings.SettingsScreen
@@ -43,6 +49,10 @@ fun AppNavigation(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
+    val context = LocalContext.current
+    val alarmScheduler = remember { AlarmScheduler(context.applicationContext) }
+    val isAlarmActive by alarmScheduler.isAlarmActiveFlow().collectAsState(initial = alarmScheduler.isAlarmActive())
+
     val isImeVisible = WindowInsets.isImeVisible
     val shouldShowBottomBar = Screen.bottomNavItems.any { it.route == currentRoute } && !isImeVisible
 
@@ -52,6 +62,7 @@ fun AppNavigation(
                 NavigationBar {
                     Screen.bottomNavItems.forEach { screen ->
                         val selected = currentRoute == screen.route
+                        val isAlarmScreen = screen == Screen.Alarm
                         NavigationBarItem(
                             selected = selected,
                             onClick = {
@@ -67,9 +78,37 @@ fun AppNavigation(
                             },
                             icon = {
                                 val icon = if (selected) screen.selectedIcon else screen.unselectedIcon
-                                icon?.let { Icon(it, contentDescription = screen.title) }
+                                icon?.let {
+                                    if (isAlarmScreen && isAlarmActive) {
+                                        BadgedBox(
+                                            badge = {
+                                                Badge(
+                                                    containerColor = MaterialTheme.colorScheme.error,
+                                                    modifier = Modifier.size(6.dp)
+                                                )
+                                            }
+                                        ) {
+                                            Icon(
+                                                it,
+                                                contentDescription = screen.title,
+                                                tint = if (selected) MaterialTheme.colorScheme.error else Color(0xFFEF4444)
+                                            )
+                                        }
+                                    } else {
+                                        Icon(it, contentDescription = screen.title)
+                                    }
+                                }
                             },
-                            label = { Text(screen.title) }
+                            label = {
+                                Text(
+                                    text = screen.title,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (isAlarmScreen && isAlarmActive && !selected) Color(0xFFEF4444) else Color.Unspecified
+                                )
+                            },
+                            alwaysShowLabel = true
                         )
                     }
                 }
@@ -139,7 +178,6 @@ fun AppNavigation(
 
             // Pantalla Alarma
             composable(Screen.Alarm.route) {
-                val context = LocalContext.current
                 val alarmViewModel: AlarmViewModel = viewModel(
                     factory = AlarmViewModel.provideFactory(context.applicationContext as Application)
                 )

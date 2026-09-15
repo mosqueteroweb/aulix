@@ -28,6 +28,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +60,7 @@ fun ClassSessionCard(
     val subject = cardState.session.subject
     val sessionId = cardState.session.session.id
     val subjectId = subject.id
+    val haptic = LocalHapticFeedback.current
 
     // Si la tarjeta está completada, se muestra compacta como en el historial
     if (cardState.isCompleted) {
@@ -163,7 +166,10 @@ fun ClassSessionCard(
                     }
 
                     IconButton(
-                        onClick = onToggleCompleted,
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onToggleCompleted()
+                        },
                         modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
@@ -317,7 +323,10 @@ fun ClassSessionCard(
 
                 // Check para marcar como impartida / completada
                 IconButton(
-                    onClick = onToggleCompleted,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onToggleCompleted()
+                    },
                     modifier = Modifier.size(38.dp)
                 ) {
                     Icon(

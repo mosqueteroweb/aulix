@@ -122,7 +122,7 @@ fun AlarmScreen(
                 } else {
                     MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
                 },
-                modifier = Modifier.padding(top = 4.dp, bottom = 20.dp)
+                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
@@ -144,13 +144,48 @@ fun AlarmScreen(
                 }
             }
 
-            // Selector de dos ruedas independientes
+            // Aviso destacado cuando hay un avisador activo que bloquea configurar otro
+            if (uiState.isAlarmActive) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.45f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.NotificationsActive,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Avisador activo para las $displayHour:$displayMinute. Solo se puede tener una alarma a la vez. Para cambiar la hora, desactívala primero.",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+            }
+
+            // Selector de dos ruedas independientes (deshabilitado si la alarma está activa)
             WheelTimePicker(
                 selectedHour = uiState.selectedHour,
                 selectedMinute = uiState.selectedMinute,
                 onTimeChanged = { hour, minute ->
                     viewModel.onTimeChanged(hour, minute)
-                }
+                },
+                enabled = !uiState.isAlarmActive
             )
 
             Spacer(modifier = Modifier.height(24.dp))

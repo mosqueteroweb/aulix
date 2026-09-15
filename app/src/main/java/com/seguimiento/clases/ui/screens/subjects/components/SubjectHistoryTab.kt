@@ -6,9 +6,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.HistoryEdu
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,14 +26,26 @@ fun SubjectHistoryTab(
     onDeleteLog: (ClassLogEntity) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var searchQuery by remember { mutableStateOf("") }
     var logToDelete by remember { mutableStateOf<ClassLogEntity?>(null) }
+
+    val filteredLogs = remember(logs, searchQuery) {
+        if (searchQuery.isBlank()) {
+            logs
+        } else {
+            val query = searchQuery.trim().lowercase()
+            logs.filter {
+                it.content.lowercase().contains(query) || it.date.contains(query)
+            }
+        }
+    }
 
     // Diálogo de confirmación para eliminar
     if (logToDelete != null) {
         AlertDialog(
             onDismissRequest = { logToDelete = null },
             title = { Text("¿Eliminar anotación?") },
-            text = { Text("Se eliminará permanentemente la anotación de la fecha ${logToDelete?.date}.") },
+            text = { Text("Se eliminará la anotación de la fecha ${logToDelete?.date}. Podrás deshacerlo en la siguiente notificación.") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -82,12 +96,71 @@ fun SubjectHistoryTab(
             }
         }
     } else {
-        LazyColumn(
-            modifier = modifier.fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(logs, key = { it.id }) { log ->
+        Column(modifier = modifier.fillMaxSize()) {
+            // Buscador por palabras clave o fecha
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Buscar en el historial...") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Filled.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Filled.Clear,
+                                contentDescription = "Borrar búsqueda"
+                            )
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    focusedContainerColor = MaterialTheme.colorScheme.surface
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            if (filteredLogs.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(32.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Sin resultados",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "No hay anotaciones que coincidan con \"$searchQuery\"",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(filteredLogs, key = { it.id }) { log ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
@@ -152,4 +225,6 @@ fun SubjectHistoryTab(
             }
         }
     }
+}
+}
 }

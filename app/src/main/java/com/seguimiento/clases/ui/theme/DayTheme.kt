@@ -26,7 +26,7 @@ data class DayConfig(
 
     @Composable
     fun currentBorder(): Color {
-        return if (isSystemInDarkTheme()) accentDark.copy(alpha = 0.65f) else solidColor.copy(alpha = 0.55f)
+        return if (isSystemInDarkTheme()) accentDark.copy(alpha = 0.85f) else solidColor.copy(alpha = 0.70f)
     }
 }
 

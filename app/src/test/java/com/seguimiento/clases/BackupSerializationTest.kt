@@ -68,4 +68,53 @@ class BackupSerializationTest {
             assertNotNull(e)
         }
     }
+
+    @Test
+    fun testReferentialIntegrityDetectsOrphans() {
+        val backupWithOrphans = BackupData(
+            version = 1,
+            app = "SeguimientoClases",
+            exportedAt = 1700000000000L,
+            subjects = listOf(
+                BackupSubject(id = 1, code = "DI", name = "Desarrollo de Interfaces", colorHex = "#2563EB", isArchived = false, displayOrder = 1)
+            ),
+            scheduleSessions = listOf(
+                BackupScheduleSession(id = 1, dayOfWeek = 1, subjectId = 999, orderIndex = 0) // 999 no existe
+            ),
+            classLogs = listOf(
+                BackupClassLog(id = 1, subjectId = 888, date = "2026-09-14", content = "Huérfano", updatedAt = 1700000000000L) // 888 no existe
+            ),
+            ideas = emptyList()
+        )
+
+        val validSubjectIds = backupWithOrphans.subjects.map { it.id }.toSet()
+        val orphanSessions = backupWithOrphans.scheduleSessions.filter { it.subjectId !in validSubjectIds }
+        val orphanLogs = backupWithOrphans.classLogs.filter { it.subjectId !in validSubjectIds }
+
+        assertEquals(1, orphanSessions.size)
+        assertEquals(999L, orphanSessions[0].subjectId)
+        assertEquals(1, orphanLogs.size)
+        assertEquals(888L, orphanLogs[0].subjectId)
+    }
+
+    @Test
+    fun testClassLogSearchFiltering() {
+        val logs = listOf(
+            BackupClassLog(id = 1, subjectId = 1, date = "2026-09-14", content = "Examen de programación reactiva", updatedAt = 1700000000000L),
+            BackupClassLog(id = 2, subjectId = 1, date = "2026-09-15", content = "Práctica con Room y SQLite", updatedAt = 1700000000000L),
+            BackupClassLog(id = 3, subjectId = 1, date = "2026-09-16", content = "Repaso previo al examen final", updatedAt = 1700000000000L)
+        )
+
+        // Búsqueda por palabra clave "examen"
+        val query = "examen"
+        val results = logs.filter { it.content.lowercase().contains(query) || it.date.contains(query) }
+        assertEquals(2, results.size)
+        assertEquals(1L, results[0].id)
+        assertEquals(3L, results[1].id)
+
+        // Búsqueda por fecha "2026-09-15"
+        val dateResults = logs.filter { it.content.lowercase().contains("2026-09-15") || it.date.contains("2026-09-15") }
+        assertEquals(1, dateResults.size)
+        assertEquals(2L, dateResults[0].id)
+    }
 }

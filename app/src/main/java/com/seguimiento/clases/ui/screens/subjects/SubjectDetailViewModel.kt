@@ -82,6 +82,12 @@ class SubjectDetailViewModel(
         }
     }
 
+    fun restoreLog(log: ClassLogEntity) {
+        viewModelScope.launch {
+            repository.insertClassLog(log)
+        }
+    }
+
     // --- ACCIONES IDEAS ---
     fun addIdea(text: String) {
         if (text.isBlank()) return
@@ -106,6 +112,12 @@ class SubjectDetailViewModel(
     fun deleteIdea(idea: IdeaEntity) {
         viewModelScope.launch {
             repository.deleteIdea(idea)
+        }
+    }
+
+    fun restoreIdea(idea: IdeaEntity) {
+        viewModelScope.launch {
+            repository.insertIdea(idea)
         }
     }
 

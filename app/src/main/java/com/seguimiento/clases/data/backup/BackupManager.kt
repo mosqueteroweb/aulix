@@ -92,8 +92,22 @@ class BackupManager(
 
     suspend fun importBackup(sourceUri: Uri): Result<Int> = withContext(Dispatchers.IO) {
         try {
+            // Lectura con límite de tamaño para prevenir OutOfMemoryError (máximo 15 MB)
+            val maxChars = 15 * 1024 * 1024
             val content = context.contentResolver.openInputStream(sourceUri)?.use { inputStream ->
-                BufferedReader(InputStreamReader(inputStream, Charsets.UTF_8)).readText()
+                val reader = BufferedReader(InputStreamReader(inputStream, Charsets.UTF_8))
+                val buffer = CharArray(8192)
+                val sb = StringBuilder()
+                var totalCharsRead = 0
+                var charsRead: Int
+                while (reader.read(buffer).also { charsRead = it } != -1) {
+                    totalCharsRead += charsRead
+                    if (totalCharsRead > maxChars) {
+                        return@withContext Result.failure(Exception("El archivo supera el tamaño máximo permitido de 15 MB."))
+                    }
+                    sb.append(buffer, 0, charsRead)
+                }
+                sb.toString()
             } ?: return@withContext Result.failure(Exception("No se pudo abrir el archivo de origen"))
 
             // Validación estricta previa a modificar la base de datos
@@ -107,7 +121,19 @@ class BackupManager(
                 return@withContext Result.failure(Exception("La versión del archivo de copia (${backup.version}) es superior a la soportada por esta app."))
             }
 
-            // Si pasa la validación, realizamos la restauración dentro de una transacción Room
+            // Validación de integridad referencial: comprobar que no existan registros huérfanos
+            val validSubjectIds = backup.subjects.map { it.id }.toSet()
+            val orphanSessions = backup.scheduleSessions.filter { it.subjectId !in validSubjectIds }
+            val orphanLogs = backup.classLogs.filter { it.subjectId !in validSubjectIds }
+            val orphanIdeas = backup.ideas.filter { it.subjectId !in validSubjectIds }
+
+            if (orphanSessions.isNotEmpty() || orphanLogs.isNotEmpty() || orphanIdeas.isNotEmpty()) {
+                return@withContext Result.failure(
+                    Exception("La copia de seguridad contiene datos inconsistentes o huérfanos (sesiones o anotaciones que apuntan a módulos inexistentes). Restauración cancelada.")
+                )
+            }
+
+            // Si pasa todas las validaciones, realizamos la restauración dentro de una transacción Room
             database.withTransaction {
                 // Limpiar datos antiguos
                 database.scheduleDao().deleteAllSessions()

@@ -154,8 +154,25 @@ class TodayViewModel(
         initialValue = TodayUiState()
     )
 
-    fun onPreviousDay() {
+    private fun flushPendingDrafts() {
+        val currentDateString = _selectedDate.value.toString()
+        val draftsToSave = _draftLogs.value
+        // Cancelar todos los jobs de debounce pendientes
+        saveDebounceJobs.values.forEach { it.cancel() }
+        saveDebounceJobs.clear()
         _draftLogs.value = emptyMap()
+
+        if (draftsToSave.isNotEmpty()) {
+            viewModelScope.launch {
+                draftsToSave.forEach { (subjectId, content) ->
+                    repository.saveClassLog(subjectId, currentDateString, content)
+                }
+            }
+        }
+    }
+
+    fun onPreviousDay() {
+        flushPendingDrafts()
         _selectedDate.update { current ->
             var prev = current.minusDays(1)
             while (prev.dayOfWeek == DayOfWeek.SATURDAY || prev.dayOfWeek == DayOfWeek.SUNDAY) {
@@ -166,7 +183,7 @@ class TodayViewModel(
     }
 
     fun onNextDay() {
-        _draftLogs.value = emptyMap()
+        flushPendingDrafts()
         _selectedDate.update { current ->
             var next = current.plusDays(1)
             while (next.dayOfWeek == DayOfWeek.SATURDAY || next.dayOfWeek == DayOfWeek.SUNDAY) {
@@ -177,7 +194,7 @@ class TodayViewModel(
     }
 
     fun onGoToToday() {
-        _draftLogs.value = emptyMap()
+        flushPendingDrafts()
         _selectedDate.value = adjustToWeekday(LocalDate.now())
     }
 
@@ -192,24 +209,25 @@ class TodayViewModel(
             current + (subjectId to newText)
         }
 
-        // Debounce de guardado automático (500 ms)
+        // Debounce de guardado automático (500 ms) asegurando la fecha de origen
+        val targetDateString = _selectedDate.value.toString()
         saveDebounceJobs[subjectId]?.cancel()
         saveDebounceJobs[subjectId] = viewModelScope.launch {
             delay(500)
-            saveLogToDb(subjectId, newText)
+            saveLogToDb(subjectId, targetDateString, newText)
         }
     }
 
     fun forceSaveCurrentLog(subjectId: Long) {
         val currentText = _draftLogs.value[subjectId] ?: return
+        val targetDateString = _selectedDate.value.toString()
         saveDebounceJobs[subjectId]?.cancel()
         viewModelScope.launch {
-            saveLogToDb(subjectId, currentText)
+            saveLogToDb(subjectId, targetDateString, currentText)
         }
     }
 
-    private suspend fun saveLogToDb(subjectId: Long, content: String) {
-        val dateString = _selectedDate.value.toString()
+    private suspend fun saveLogToDb(subjectId: Long, dateString: String, content: String) {
         repository.saveClassLog(subjectId, dateString, content)
     }
 

@@ -22,6 +22,7 @@ import com.seguimiento.clases.ui.screens.subjects.components.AddEditLogDialog
 import com.seguimiento.clases.ui.screens.subjects.components.SubjectHistoryTab
 import com.seguimiento.clases.ui.screens.subjects.components.SubjectIdeasTab
 import com.seguimiento.clases.ui.theme.parseColor
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +32,8 @@ fun SubjectDetailScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
     var showAddEditDialog by remember { mutableStateOf(false) }
     var editingLog by remember { mutableStateOf<ClassLogEntity?>(null) }
     var showArchiveConfirmDialog by remember { mutableStateOf(false) }
@@ -138,6 +141,7 @@ fun SubjectDetailScreen(
                 )
             }
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         modifier = modifier
     ) { innerPadding ->
@@ -170,7 +174,20 @@ fun SubjectDetailScreen(
                     0 -> SubjectHistoryTab(
                         logs = uiState.logs,
                         onEditLog = { log -> editingLog = log },
-                        onDeleteLog = { log -> viewModel.deleteLog(log) }
+                        onDeleteLog = { log ->
+                            viewModel.deleteLog(log)
+                            coroutineScope.launch {
+                                snackbarHostState.currentSnackbarData?.dismiss()
+                                val result = snackbarHostState.showSnackbar(
+                                    message = "Anotación del ${log.date} eliminada",
+                                    actionLabel = "Deshacer",
+                                    duration = SnackbarDuration.Short
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    viewModel.restoreLog(log)
+                                }
+                            }
+                        }
                     )
                     1 -> SubjectIdeasTab(
                         pendingIdeas = uiState.pendingIdeas,
@@ -180,7 +197,20 @@ fun SubjectDetailScreen(
                         onAddIdea = { text -> viewModel.addIdea(text) },
                         onUpdateIdea = { id, text -> viewModel.updateIdea(id, text) },
                         onSetIdeaUsed = { id, isUsed -> viewModel.setIdeaUsedState(id, isUsed) },
-                        onDeleteIdea = { idea -> viewModel.deleteIdea(idea) }
+                        onDeleteIdea = { idea ->
+                            viewModel.deleteIdea(idea)
+                            coroutineScope.launch {
+                                snackbarHostState.currentSnackbarData?.dismiss()
+                                val result = snackbarHostState.showSnackbar(
+                                    message = "Idea eliminada",
+                                    actionLabel = "Deshacer",
+                                    duration = SnackbarDuration.Short
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    viewModel.restoreIdea(idea)
+                                }
+                            }
+                        }
                     )
                 }
             }

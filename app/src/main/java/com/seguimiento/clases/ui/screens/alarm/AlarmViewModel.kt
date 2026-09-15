@@ -54,38 +54,48 @@ class AlarmViewModel(
     }
 
     /**
-     * Se invoca al entrar en la pantalla para inicializar las ruedas a la hora y minutos actuales.
+     * Se invoca al entrar en la pantalla.
+     * Si ya hay una alarma activa, muestra la hora de la alarma programada.
+     * Si no hay alarma, inicializa las ruedas a la hora y minutos actuales.
      */
     fun initializeToCurrentTime() {
-        val now = Calendar.getInstance()
-        val currentHour = now.get(Calendar.HOUR_OF_DAY)
-        val currentMinute = now.get(Calendar.MINUTE)
+        val isCurrentlyActive = scheduler.isAlarmActive()
+        val hour: Int
+        val minute: Int
+
+        if (isCurrentlyActive) {
+            val triggerMillis = scheduler.getTriggerMillis()
+            val cal = Calendar.getInstance().apply { timeInMillis = triggerMillis }
+            hour = cal.get(Calendar.HOUR_OF_DAY)
+            minute = cal.get(Calendar.MINUTE)
+        } else {
+            val now = Calendar.getInstance()
+            hour = now.get(Calendar.HOUR_OF_DAY)
+            minute = now.get(Calendar.MINUTE)
+        }
 
         _uiState.update { state ->
             state.copy(
-                selectedHour = currentHour,
-                selectedMinute = currentMinute,
-                isAlarmActive = scheduler.isAlarmActive(),
-                scheduledTriggerMillis = scheduler.getTriggerMillis(),
-                remainingTimeText = if (scheduler.isAlarmActive()) {
+                selectedHour = hour,
+                selectedMinute = minute,
+                isAlarmActive = isCurrentlyActive,
+                scheduledTriggerMillis = if (isCurrentlyActive) scheduler.getTriggerMillis() else 0L,
+                remainingTimeText = if (isCurrentlyActive) {
                     AlarmScheduler.formatRemainingTime(scheduler.getTriggerMillis())
                 } else {
-                    computePreviewText(currentHour, currentMinute)
+                    computePreviewText(hour, minute)
                 }
             )
         }
     }
 
     fun onTimeChanged(hour: Int, minute: Int) {
+        if (_uiState.value.isAlarmActive) return // Bloqueado si hay alarma activa
         _uiState.update { state ->
             state.copy(
                 selectedHour = hour,
                 selectedMinute = minute,
-                remainingTimeText = if (state.isAlarmActive) {
-                    state.remainingTimeText
-                } else {
-                    computePreviewText(hour, minute)
-                }
+                remainingTimeText = computePreviewText(hour, minute)
             )
         }
     }
@@ -99,6 +109,11 @@ class AlarmViewModel(
     }
 
     fun activateAlarm() {
+        if (scheduler.isAlarmActive()) {
+            _uiState.update { it.copy(feedbackMessage = "Ya hay una alarma activa. Debes desactivarla antes de poner otra.") }
+            return
+        }
+
         val hour = _uiState.value.selectedHour
         val minute = _uiState.value.selectedMinute
         val triggerMillis = scheduler.scheduleAlarm(hour, minute)

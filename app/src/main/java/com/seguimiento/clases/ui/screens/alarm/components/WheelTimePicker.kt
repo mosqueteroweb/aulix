@@ -18,6 +18,8 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,18 +31,20 @@ fun WheelTimePicker(
     selectedHour: Int,
     selectedMinute: Int,
     onTimeChanged: (hour: Int, minute: Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        tonalElevation = 2.dp
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (enabled) 0.35f else 0.15f),
+        tonalElevation = if (enabled) 2.dp else 0.dp
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp, horizontal = 24.dp),
+                .padding(vertical = 16.dp, horizontal = 24.dp)
+                .alpha(if (enabled) 1f else 0.38f),
             contentAlignment = Alignment.Center
         ) {
             // Fondo indicador de selección en el centro
@@ -70,7 +74,8 @@ fun WheelTimePicker(
                         onValueSelected = { newHour ->
                             onTimeChanged(newHour, selectedMinute)
                         },
-                        label = "horas"
+                        label = "horas",
+                        enabled = enabled
                     )
                 }
 
@@ -96,7 +101,8 @@ fun WheelTimePicker(
                         onValueSelected = { newMinute ->
                             onTimeChanged(selectedHour, newMinute)
                         },
-                        label = "min"
+                        label = "min",
+                        enabled = enabled
                     )
                 }
             }
@@ -112,8 +118,11 @@ private fun SingleWheel(
     onValueSelected: (Int) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
-    itemHeight: Dp = 56.dp
+    itemHeight: Dp = 56.dp,
+    enabled: Boolean = true
 ) {
+    val haptic = LocalHapticFeedback.current
+
     // Usamos repetición circular para que el giro sea infinito y natural
     val repeatCount = 100
     val totalItems = valueCount * repeatCount
@@ -145,6 +154,9 @@ private fun SingleWheel(
     LaunchedEffect(centerIndex) {
         val actualValue = centerIndex % valueCount
         if (actualValue != selectedValue) {
+            if (enabled) {
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            }
             onValueSelected(actualValue)
         }
     }
@@ -171,6 +183,7 @@ private fun SingleWheel(
             LazyColumn(
                 state = listState,
                 flingBehavior = flingBehavior,
+                userScrollEnabled = enabled,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(vertical = itemHeight),
                 horizontalAlignment = Alignment.CenterHorizontally
