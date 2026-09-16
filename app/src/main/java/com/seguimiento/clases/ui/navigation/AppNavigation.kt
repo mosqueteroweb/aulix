@@ -30,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.alarm.AlarmScheduler
 import com.seguimiento.clases.ui.screens.alarm.AlarmScreen
 import com.seguimiento.clases.ui.screens.alarm.AlarmViewModel
+import com.seguimiento.clases.ui.screens.search.SearchScreen
+import com.seguimiento.clases.ui.screens.search.SearchViewModel
 import com.seguimiento.clases.ui.screens.settings.SettingsScreen
 import com.seguimiento.clases.ui.screens.settings.SettingsViewModel
 import com.seguimiento.clases.ui.screens.subjects.SubjectDetailScreen
@@ -117,6 +119,10 @@ fun AppNavigation(
         contentWindowInsets = WindowInsets.systemBars,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
+        val todayViewModel: TodayViewModel = viewModel(
+            factory = TodayViewModel.provideFactory(repository)
+        )
+
         NavHost(
             navController = navController,
             startDestination = Screen.Today.route,
@@ -127,9 +133,6 @@ fun AppNavigation(
         ) {
             // Pantalla Hoy
             composable(Screen.Today.route) {
-                val todayViewModel: TodayViewModel = viewModel(
-                    factory = TodayViewModel.provideFactory(repository)
-                )
                 TodayScreen(
                     viewModel = todayViewModel,
                     onNavigateToSubjectDetail = { subjectId ->
@@ -192,7 +195,31 @@ fun AppNavigation(
                     factory = SettingsViewModel.provideFactory(repository)
                 )
                 SettingsScreen(
-                    viewModel = settingsViewModel
+                    viewModel = settingsViewModel,
+                    onNavigateToSearch = { navController.navigate(Screen.Search.route) }
+                )
+            }
+
+            // Pantalla Buscador
+            composable(Screen.Search.route) {
+                val searchViewModel: SearchViewModel = viewModel(
+                    factory = SearchViewModel.provideFactory(repository)
+                )
+                SearchScreen(
+                    viewModel = searchViewModel,
+                    onNavigateBack = { navController.popBackStack() },
+                    onNavigateToTodayDate = { dateStr ->
+                        todayViewModel.onSelectDate(dateStr)
+                        navController.navigate(Screen.Today.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                        }
+                    },
+                    onNavigateToSubject = { subjectId ->
+                        navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
+                    }
                 )
             }
         }

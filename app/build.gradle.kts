@@ -13,8 +13,8 @@ android {
         applicationId = "com.seguimiento.clases"
         minSdk = 26
         targetSdk = 34
-        versionCode = 15
-        versionName = "0.9.1"
+        versionCode = 16
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -40,6 +40,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.14"

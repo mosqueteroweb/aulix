@@ -52,6 +52,11 @@ sealed class Screen(
         fun createRoute(subjectId: Long): String = "subject_detail/$subjectId"
     }
 
+    object Search : Screen(
+        route = "search",
+        title = "Búsqueda"
+    )
+
     companion object {
         val bottomNavItems = listOf(Today, Subjects, Alarm, Settings)
     }

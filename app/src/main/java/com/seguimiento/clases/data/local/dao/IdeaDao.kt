@@ -21,6 +21,9 @@ interface IdeaDao {
     @Query("SELECT * FROM ideas ORDER BY createdAt DESC")
     suspend fun getAllIdeas(): List<IdeaEntity>
 
+    @Query("SELECT * FROM ideas WHERE TRIM(text) != '' ORDER BY createdAt DESC")
+    fun getAllIdeasWithContent(): Flow<List<IdeaEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertIdea(idea: IdeaEntity): Long
 

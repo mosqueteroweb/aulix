@@ -207,6 +207,14 @@ class TodayViewModel(
         _selectedDate.value = adjustToWeekday(LocalDate.now())
     }
 
+    fun onSelectDate(dateString: String) {
+        flushPendingDrafts()
+        try {
+            val parsed = LocalDate.parse(dateString)
+            _selectedDate.value = parsed
+        } catch (_: Exception) {}
+    }
+
     fun toggleExpandPriorLogs(subjectId: Long) {
         _expandedSubjectIds.update { current ->
             if (current.contains(subjectId)) current - subjectId else current + subjectId

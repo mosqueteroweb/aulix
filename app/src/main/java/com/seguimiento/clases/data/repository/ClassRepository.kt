@@ -155,8 +155,10 @@ class ClassRepository(
     suspend fun deleteLogForSubjectAndDate(subjectId: Long, date: String) =
         classLogDao.deleteLogForSubjectAndDate(subjectId, date)
     suspend fun insertClassLog(log: ClassLogEntity) = classLogDao.upsertLog(log)
+    fun getAllLogsWithContent(): Flow<List<ClassLogEntity>> = classLogDao.getAllLogsWithContent()
 
     // --- IDEAS ---
+    fun getAllIdeasWithContent(): Flow<List<IdeaEntity>> = ideaDao.getAllIdeasWithContent()
     fun getPendingIdeasForSubject(subjectId: Long): Flow<List<IdeaEntity>> =
         ideaDao.getPendingIdeasForSubject(subjectId)
 

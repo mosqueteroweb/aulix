@@ -21,6 +21,9 @@ interface ClassLogDao {
     @Query("SELECT * FROM class_logs ORDER BY date DESC")
     suspend fun getAllLogs(): List<ClassLogEntity>
 
+    @Query("SELECT * FROM class_logs WHERE TRIM(content) != '' ORDER BY date DESC")
+    fun getAllLogsWithContent(): Flow<List<ClassLogEntity>>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertLog(log: ClassLogEntity): Long
 
