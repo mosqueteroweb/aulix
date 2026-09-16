@@ -1,5 +1,6 @@
 package com.seguimiento.clases.data.repository
 
+import android.content.Context
 import android.net.Uri
 import com.seguimiento.clases.data.backup.BackupManager
 import com.seguimiento.clases.data.local.AppDatabase
@@ -9,15 +10,41 @@ import com.seguimiento.clases.data.local.entity.IdeaEntity
 import com.seguimiento.clases.data.local.entity.ScheduleSessionEntity
 import com.seguimiento.clases.data.local.entity.SubjectEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class ClassRepository(
     private val database: AppDatabase,
-    private val backupManager: BackupManager
+    private val backupManager: BackupManager,
+    private val context: Context? = null
 ) {
     private val subjectDao = database.subjectDao()
     private val scheduleDao = database.scheduleDao()
     private val classLogDao = database.classLogDao()
     private val ideaDao = database.ideaDao()
+
+    // --- NOTA FIJA ---
+    private val pinnedNotePrefs by lazy {
+        context?.getSharedPreferences("aulix_pinned_notes", Context.MODE_PRIVATE)
+    }
+
+    private val _pinnedNoteFlow = MutableStateFlow(
+        pinnedNotePrefs?.getString("key_pinned_note", "") ?: ""
+    )
+
+    fun getPinnedNote(): StateFlow<String> {
+        val currentSaved = pinnedNotePrefs?.getString("key_pinned_note", "") ?: ""
+        if (_pinnedNoteFlow.value != currentSaved && currentSaved.isNotBlank()) {
+            _pinnedNoteFlow.value = currentSaved
+        }
+        return _pinnedNoteFlow.asStateFlow()
+    }
+
+    fun savePinnedNote(note: String) {
+        _pinnedNoteFlow.value = note
+        pinnedNotePrefs?.edit()?.putString("key_pinned_note", note)?.apply()
+    }
 
     // --- ASIGNATURAS ---
     fun getAllSubjects(): Flow<List<SubjectEntity>> = subjectDao.getAllSubjects()

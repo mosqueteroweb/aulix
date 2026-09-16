@@ -36,12 +36,14 @@ class BackupSerializationTest {
             ),
             ideas = listOf(
                 BackupIdea(id = 1, subjectId = 1, text = "Práctica con Figma y Compose", isUsed = false, createdAt = 1700000000000L, updatedAt = 1700000000000L)
-            )
+            ),
+            pinnedNote = "Recordatorio semanal urgente: actas antes del viernes"
         )
 
         val jsonString = json.encodeToString(originalBackup)
         assertTrue(jsonString.contains("SeguimientoClases"))
         assertTrue(jsonString.contains("Desarrollo de Interfaces"))
+        assertTrue(jsonString.contains("Recordatorio semanal urgente"))
 
         val decodedBackup = json.decodeFromString<BackupData>(jsonString)
         assertEquals(originalBackup.version, decodedBackup.version)
@@ -55,6 +57,7 @@ class BackupSerializationTest {
         assertFalse(decodedBackup.classLogs[0].isCompleted)
         assertEquals("Práctica con Figma y Compose", decodedBackup.ideas[0].text)
         assertFalse(decodedBackup.ideas[0].isUsed)
+        assertEquals("Recordatorio semanal urgente: actas antes del viernes", decodedBackup.pinnedNote)
     }
 
     @Test

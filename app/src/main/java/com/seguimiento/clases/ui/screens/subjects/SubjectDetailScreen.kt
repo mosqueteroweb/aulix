@@ -22,6 +22,7 @@ import com.seguimiento.clases.ui.screens.subjects.components.AddEditLogDialog
 import com.seguimiento.clases.ui.screens.subjects.components.SubjectHistoryTab
 import com.seguimiento.clases.ui.screens.subjects.components.SubjectIdeasTab
 import com.seguimiento.clases.ui.theme.parseColor
+import com.seguimiento.clases.util.DateUtils.formatShortDate
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -179,7 +180,7 @@ fun SubjectDetailScreen(
                             coroutineScope.launch {
                                 snackbarHostState.currentSnackbarData?.dismiss()
                                 val result = snackbarHostState.showSnackbar(
-                                    message = "Anotación del ${log.date} eliminada",
+                                    message = "Anotación del ${formatShortDate(log.date)} eliminada",
                                     actionLabel = "Deshacer",
                                     duration = SnackbarDuration.Short
                                 )

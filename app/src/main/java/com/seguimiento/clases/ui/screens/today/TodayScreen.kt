@@ -11,6 +11,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -19,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.ui.screens.today.components.ClassSessionCard
 import com.seguimiento.clases.ui.screens.today.components.DateNavigationHeader
 import com.seguimiento.clases.ui.screens.today.components.PendingIdeasBottomSheet
+import com.seguimiento.clases.ui.screens.today.components.PinnedNoteBottomSheet
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -29,6 +33,7 @@ fun TodayScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showPinnedNoteSheet by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -39,7 +44,9 @@ fun TodayScreen(
                 isToday = uiState.isToday,
                 onPreviousDay = { viewModel.onPreviousDay() },
                 onNextDay = { viewModel.onNextDay() },
-                onGoToToday = { viewModel.onGoToToday() }
+                onGoToToday = { viewModel.onGoToToday() },
+                hasPinnedNote = uiState.pinnedNote.isNotBlank(),
+                onOpenPinnedNote = { showPinnedNoteSheet = true }
             )
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -156,6 +163,15 @@ fun TodayScreen(
                         onNavigateToSubjectDetail = { onNavigateToSubjectDetail(activeSubjectId) }
                     )
                 }
+            }
+
+            // BottomSheet de la nota fija persistente
+            if (showPinnedNoteSheet) {
+                PinnedNoteBottomSheet(
+                    pinnedNote = uiState.pinnedNote,
+                    onNoteChange = { viewModel.onUpdatePinnedNote(it) },
+                    onDismiss = { showPinnedNoteSheet = false }
+                )
             }
         }
     }

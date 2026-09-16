@@ -74,7 +74,9 @@ class BackupManager(
                         createdAt = it.createdAt,
                         updatedAt = it.updatedAt
                     )
-                }
+                },
+                pinnedNote = context.getSharedPreferences("aulix_pinned_notes", android.content.Context.MODE_PRIVATE)
+                    .getString("key_pinned_note", null)
             )
 
             val jsonString = json.encodeToString(backup)
@@ -187,6 +189,13 @@ class BackupManager(
                     )
                 }
                 database.ideaDao().insertIdeas(ideaEntities)
+
+                if (backup.pinnedNote != null) {
+                    context.getSharedPreferences("aulix_pinned_notes", android.content.Context.MODE_PRIVATE)
+                        .edit()
+                        .putString("key_pinned_note", backup.pinnedNote)
+                        .apply()
+                }
             }
 
             Result.success(backup.classLogs.size)

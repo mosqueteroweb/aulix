@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Today
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -29,6 +30,8 @@ fun DateNavigationHeader(
     onPreviousDay: () -> Unit,
     onNextDay: () -> Unit,
     onGoToToday: () -> Unit,
+    hasPinnedNote: Boolean = false,
+    onOpenPinnedNote: () -> Unit = {},
     modifier: Modifier = Modifier,
     formattedDate: String = ""
 ) {
@@ -47,8 +50,7 @@ fun DateNavigationHeader(
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
                     onClick = onPreviousDay,
@@ -93,6 +95,28 @@ fun DateNavigationHeader(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = "Día siguiente"
                     )
+                }
+
+                IconButton(
+                    onClick = onOpenPinnedNote,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    BadgedBox(
+                        badge = {
+                            if (hasPinnedNote) {
+                                Badge(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(6.dp)
+                                )
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.PushPin,
+                            contentDescription = "Nota fija",
+                            tint = if (hasPinnedNote) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 

@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
+import com.seguimiento.clases.util.DateUtils.formatShortDate
 
 @Composable
 fun SubjectHistoryTab(
@@ -35,7 +36,7 @@ fun SubjectHistoryTab(
         } else {
             val query = searchQuery.trim().lowercase()
             logs.filter {
-                it.content.lowercase().contains(query) || it.date.contains(query)
+                it.content.lowercase().contains(query) || it.date.contains(query) || formatShortDate(it.date).contains(query)
             }
         }
     }
@@ -45,7 +46,7 @@ fun SubjectHistoryTab(
         AlertDialog(
             onDismissRequest = { logToDelete = null },
             title = { Text("¿Eliminar anotación?") },
-            text = { Text("Se eliminará la anotación de la fecha ${logToDelete?.date}. Podrás deshacerlo en la siguiente notificación.") },
+            text = { Text("Se eliminará la anotación de la fecha ${formatShortDate(logToDelete?.date)}. Podrás deshacerlo en la siguiente notificación.") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -180,7 +181,7 @@ fun SubjectHistoryTab(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Sesión: ${log.date}",
+                                text = "Sesión: ${formatShortDate(log.date)}",
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.primary

@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
 import com.seguimiento.clases.ui.components.SubjectBadge
+import com.seguimiento.clases.util.DateUtils.formatShortDate
 import com.seguimiento.clases.ui.screens.subjects.components.AddEditLogDialog
 import com.seguimiento.clases.ui.screens.today.SessionCardUiState
 import com.seguimiento.clases.ui.theme.DayThemes
@@ -505,7 +506,7 @@ private fun PriorNotesSection(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Sesión del ${log.date}",
+                        text = "Sesión del ${formatShortDate(log.date)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -564,7 +565,7 @@ private fun PriorNotesSection(
         AlertDialog(
             onDismissRequest = { logToDelete = null },
             title = { Text("¿Eliminar anotación?") },
-            text = { Text("Se eliminará permanentemente la anotación de la fecha ${logToDelete?.date}.") },
+            text = { Text("Se eliminará permanentemente la anotación de la fecha ${formatShortDate(logToDelete?.date)}.") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -606,10 +607,11 @@ private fun PriorNotesSection(
                     modifier = Modifier.weight(1f, fill = false)
                 ) {
                     Text(
-                        text = "Última clase (${latest.date}):",
+                        text = "Última clase (${formatShortDate(latest.date)}):",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 2
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Icon(
@@ -705,7 +707,7 @@ private fun PriorNotesSection(
                         ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "Sesión ${log.date}:",
+                                    text = "Sesión ${formatShortDate(log.date)}:",
                                     style = MaterialTheme.typography.labelSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.primary

@@ -20,7 +20,7 @@ class AppApplication : Application() {
     }
 
     val repository by lazy {
-        ClassRepository(database, backupManager)
+        ClassRepository(database, backupManager, this)
     }
 
     override fun onCreate() {

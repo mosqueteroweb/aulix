@@ -10,7 +10,8 @@ data class BackupData(
     val subjects: List<BackupSubject> = emptyList(),
     val scheduleSessions: List<BackupScheduleSession> = emptyList(),
     val classLogs: List<BackupClassLog> = emptyList(),
-    val ideas: List<BackupIdea> = emptyList()
+    val ideas: List<BackupIdea> = emptyList(),
+    val pinnedNote: String? = null
 )
 
 @Serializable

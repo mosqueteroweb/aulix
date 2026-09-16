@@ -34,7 +34,8 @@ data class TodayUiState(
     val formattedDate: String = "",
     val sessions: List<SessionCardUiState> = emptyList(),
     val isLoading: Boolean = true,
-    val activeBottomSheetSubjectId: Long? = null // Para el BottomSheet de ideas
+    val activeBottomSheetSubjectId: Long? = null, // Para el BottomSheet de ideas
+    val pinnedNote: String = ""
 )
 
 private data class SessionDbData(
@@ -102,13 +103,20 @@ class TodayViewModel(
         }
     }
 
+    val pinnedNote: StateFlow<String> = repository.getPinnedNote()
+
+    fun onUpdatePinnedNote(newNote: String) {
+        repository.savePinnedNote(newNote)
+    }
+
     val uiState: StateFlow<TodayUiState> = combine(
-        _selectedDate,
-        _dbDataFlow,
-        _expandedSubjectIds,
+        combine(_selectedDate, _dbDataFlow, _expandedSubjectIds) { date, dbSessions, expandedIds ->
+            Triple(date, dbSessions, expandedIds)
+        },
         _draftLogs,
-        _activeBottomSheetSubjectId
-    ) { date, dbSessions, expandedIds, drafts, bottomSheetId ->
+        _activeBottomSheetSubjectId,
+        repository.getPinnedNote()
+    ) { (date, dbSessions, expandedIds), drafts, bottomSheetId, pinnedNoteText ->
         val dayOfWeek = date.dayOfWeek.value // 1 = Lunes, 5 = Viernes
         val currentSchoolToday = adjustToWeekday(LocalDate.now())
         val isToday = date.isEqual(currentSchoolToday)
@@ -146,7 +154,8 @@ class TodayViewModel(
             formattedDate = formattedDate,
             sessions = cardStates,
             isLoading = false,
-            activeBottomSheetSubjectId = bottomSheetId
+            activeBottomSheetSubjectId = bottomSheetId,
+            pinnedNote = pinnedNoteText
         )
     }.stateIn(
         scope = viewModelScope,
