@@ -12,6 +12,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
+import com.seguimiento.clases.util.DateUtils
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -22,7 +23,8 @@ import java.time.format.DateTimeFormatter
 fun AddEditLogDialog(
     initialLog: ClassLogEntity? = null,
     onDismiss: () -> Unit,
-    onSave: (date: String, content: String) -> Unit
+    onSave: (date: String, content: String) -> Unit,
+    dateEditable: Boolean = true
 ) {
     var dateString by remember {
         mutableStateOf(initialLog?.date ?: LocalDate.now().toString())
@@ -39,6 +41,13 @@ fun AddEditLogDialog(
             localDate.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
         } catch (e: Exception) {
             System.currentTimeMillis()
+        },
+        // Las anotaciones son de lo ya visto en clase: no se permiten fechas futuras
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                DateUtils.isSelectableLogDate(utcTimeMillis)
+
+            override fun isSelectableYear(year: Int): Boolean = year <= LocalDate.now().year
         }
     )
 
@@ -82,6 +91,7 @@ fun AddEditLogDialog(
                 // Selector de fecha
                 OutlinedCard(
                     onClick = { showDatePicker = true },
+                    enabled = dateEditable,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp)
                 ) {
@@ -99,15 +109,17 @@ fun AddEditLogDialog(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = dateString,
+                                text = DateUtils.formatShortDate(dateString),
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         }
-                        Icon(
-                            imageVector = Icons.Filled.CalendarToday,
-                            contentDescription = "Elegir fecha",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        if (dateEditable) {
+                            Icon(
+                                imageVector = Icons.Filled.CalendarToday,
+                                contentDescription = "Elegir fecha",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
 

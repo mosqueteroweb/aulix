@@ -117,6 +117,7 @@ fun TodayScreen(
                         ClassSessionCard(
                             cardState = cardState,
                             dayOfWeek = uiState.dayOfWeek,
+                            selectedDate = uiState.selectedDate.toString(),
                             onContentChange = { newText ->
                                 viewModel.onLogContentChanged(subjectId, newText)
                             },

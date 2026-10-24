@@ -136,11 +136,16 @@ class AlarmViewModel(
         // Si la alarma está sonando en este momento, detener también el sonido y la vibración
         val context = getApplication<Application>()
         context.stopService(Intent(context, AlarmRingtoneService::class.java))
-        val hour = _uiState.value.selectedHour
-        val minute = _uiState.value.selectedMinute
+        // Las ruedas vuelven a la hora actual, como al entrar sin alarma, para no seguir
+        // mostrando la hora de una alarma que ya no existe
+        val now = Calendar.getInstance()
+        val hour = now.get(Calendar.HOUR_OF_DAY)
+        val minute = now.get(Calendar.MINUTE)
 
         _uiState.update {
             it.copy(
+                selectedHour = hour,
+                selectedMinute = minute,
                 isAlarmActive = false,
                 scheduledTriggerMillis = 0L,
                 remainingTimeText = computePreviewText(hour, minute),

@@ -145,7 +145,9 @@ fun SettingsScreen(
             // Sección 3: Copia de Seguridad JSON
             BackupSection(
                 onExport = { uri -> viewModel.exportBackup(uri) },
-                onImport = { uri -> viewModel.importBackup(uri) }
+                onImport = { uri -> viewModel.importBackup(uri) },
+                isExporting = uiState.isExporting,
+                isImporting = uiState.isImporting
             )
 
             // Información sobre la app

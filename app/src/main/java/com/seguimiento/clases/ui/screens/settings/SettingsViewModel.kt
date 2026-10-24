@@ -4,10 +4,12 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.seguimiento.clases.data.backup.ImportSummary
 import com.seguimiento.clases.data.local.dao.SessionWithSubjectInfo
 import com.seguimiento.clases.data.local.entity.ScheduleSessionEntity
 import com.seguimiento.clases.data.local.entity.SubjectEntity
 import com.seguimiento.clases.data.repository.ClassRepository
+import com.seguimiento.clases.util.SubjectCodes
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -30,23 +32,29 @@ class SettingsViewModel(
     private val _feedbackMessage = MutableStateFlow<String?>(null)
     private val _errorMessage = MutableStateFlow<String?>(null)
 
+    // Copia de seguridad en curso (para mostrar progreso y bloquear los botones)
+    private val _backupOperation = MutableStateFlow<BackupOperation?>(null)
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<SettingsUiState> = combine(
         _selectedScheduleDay,
         repository.getAllSubjects(),
         _feedbackMessage,
-        _errorMessage
-    ) { day, subjects, feedback, error ->
-        Tuple4(day, subjects, feedback, error)
-    }.flatMapLatest { (day, subjects, feedback, error) ->
-        repository.getSessionsForDay(day).map { sessions ->
-            SettingsUiState(
-                selectedScheduleDay = day,
-                scheduleSessions = sessions,
-                allSubjects = subjects,
-                activeSubjects = subjects.filter { !it.isArchived },
-                feedbackMessage = feedback,
-                errorMessage = error
-            )
+        _errorMessage,
+        _backupOperation
+    ) { day, subjects, feedback, error, operation ->
+        SettingsUiState(
+            selectedScheduleDay = day,
+            allSubjects = subjects,
+            activeSubjects = subjects.filter { !it.isArchived },
+            isExporting = operation == BackupOperation.EXPORTING,
+            isImporting = operation == BackupOperation.IMPORTING,
+            feedbackMessage = feedback,
+            errorMessage = error
+        )
+    }.flatMapLatest { baseState ->
+        repository.getSessionsForDay(baseState.selectedScheduleDay).map { sessions ->
+            baseState.copy(scheduleSessions = sessions)
         }
     }.stateIn(
         scope = viewModelScope,
@@ -92,10 +100,14 @@ class SettingsViewModel(
     // --- ASIGNATURAS ---
     fun updateSubject(subject: SubjectEntity, newCode: String, newName: String) {
         if (newCode.isBlank()) return
+        if (SubjectCodes.isTaken(newCode, uiState.value.allSubjects, editingSubjectId = subject.id)) {
+            _errorMessage.value = SubjectCodes.DUPLICATE_MESSAGE
+            return
+        }
         viewModelScope.launch {
             repository.updateSubject(
                 subject.copy(
-                    code = newCode.trim().uppercase(),
+                    code = SubjectCodes.normalize(newCode),
                     name = newName.trim()
                 )
             )
@@ -112,8 +124,11 @@ class SettingsViewModel(
 
     // --- COPIA DE SEGURIDAD ---
     fun exportBackup(targetUri: Uri) {
+        if (_backupOperation.value != null) return
+        _backupOperation.value = BackupOperation.EXPORTING
         viewModelScope.launch {
             val result = repository.exportBackup(targetUri)
+            _backupOperation.value = null
             if (result.isSuccess) {
                 _feedbackMessage.value = "Copia de seguridad guardada con éxito."
             } else {
@@ -123,12 +138,15 @@ class SettingsViewModel(
     }
 
     fun importBackup(sourceUri: Uri) {
+        if (_backupOperation.value != null) return
+        _backupOperation.value = BackupOperation.IMPORTING
         viewModelScope.launch {
             val result = repository.importBackup(sourceUri)
-            if (result.isSuccess) {
-                _feedbackMessage.value = "Copia restaurada con éxito. Se importaron los registros correctamente."
-            } else {
-                _errorMessage.value = "Error al restaurar: ${result.exceptionOrNull()?.message}"
+            _backupOperation.value = null
+            result.onSuccess { summary ->
+                _feedbackMessage.value = importSuccessMessage(summary)
+            }.onFailure { error ->
+                _errorMessage.value = "Error al restaurar: ${error.message}"
             }
         }
     }
@@ -138,9 +156,16 @@ class SettingsViewModel(
         _errorMessage.value = null
     }
 
-    private data class Tuple4<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
+    private enum class BackupOperation { EXPORTING, IMPORTING }
 
     companion object {
+        /** Mensaje tras restaurar, con lo importado: «Copia restaurada: 4 módulos, 35 anotaciones y 1 idea.» */
+        fun importSuccessMessage(summary: ImportSummary): String {
+            fun count(n: Int, singular: String, plural: String) = "$n ${if (n == 1) singular else plural}"
+            return "Copia restaurada: ${count(summary.subjects, "módulo", "módulos")}, " +
+                "${count(summary.classLogs, "anotación", "anotaciones")} y ${count(summary.ideas, "idea", "ideas")}."
+        }
+
         fun provideFactory(repository: ClassRepository): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")

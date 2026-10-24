@@ -102,7 +102,7 @@ class BackupManager(
         }
     }
 
-    suspend fun importBackup(sourceUri: Uri): Result<Int> = withContext(Dispatchers.IO) {
+    suspend fun importBackup(sourceUri: Uri): Result<ImportSummary> = withContext(Dispatchers.IO) {
         try {
             // Lectura con límite de tamaño para prevenir OutOfMemoryError (máximo 15 MB)
             val maxChars = 15 * 1024 * 1024
@@ -212,7 +212,13 @@ class BackupManager(
                 AlarmScheduler(context).restoreSettings(alarm.hour, alarm.minute, alarm.isActive, alarm.triggerMillis)
             }
 
-            Result.success(backup.classLogs.size)
+            Result.success(
+                ImportSummary(
+                    subjects = backup.subjects.size,
+                    classLogs = backup.classLogs.size,
+                    ideas = backup.ideas.size
+                )
+            )
         } catch (e: Exception) {
             Result.failure(e)
         }

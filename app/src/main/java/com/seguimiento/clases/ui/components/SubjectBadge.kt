@@ -11,9 +11,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.seguimiento.clases.ui.theme.parseColor
 
 @Composable
@@ -28,11 +28,14 @@ fun SubjectBadge(
     val luminance = 0.299f * backgroundColor.red + 0.587f * backgroundColor.green + 0.114f * backgroundColor.blue
     val textColor = if (luminance > 0.55f) Color(0xFF0F172A) else Color.White
 
-    // Ajuste proporcional y preciso de tipografía para evitar desbordamientos o saltos de línea
-    val fontSize = when {
-        code.length <= 2 -> (size.value * 0.38f).sp
-        code.length == 3 -> (size.value * 0.30f).sp
-        else -> (size.value * 0.24f).sp
+    // Tipografía proporcional al círculo. Se calcula desde dp para que no crezca con el tamaño
+    // de letra del sistema: la insignia es un icono y el nombre completo ya aparece al lado.
+    val fontSize = with(LocalDensity.current) {
+        when {
+            code.length <= 2 -> (size * 0.38f).toSp()
+            code.length == 3 -> (size * 0.30f).toSp()
+            else -> (size * 0.24f).toSp()
+        }
     }
 
     Box(

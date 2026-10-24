@@ -61,3 +61,10 @@ data class BackupIdea(
     val createdAt: Long,
     val updatedAt: Long
 )
+
+/** Recuento de lo restaurado, para informar al usuario al terminar la importación. */
+data class ImportSummary(
+    val subjects: Int,
+    val classLogs: Int,
+    val ideas: Int
+)

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.SubjectEntity
 import com.seguimiento.clases.ui.components.SubjectBadge
 import com.seguimiento.clases.ui.theme.parseColor
+import com.seguimiento.clases.util.SubjectCodes
 
 @Composable
 fun SubjectManageSection(
@@ -40,6 +41,7 @@ fun SubjectManageSection(
         var nameValue by remember(currentSubject) {
             mutableStateOf(TextFieldValue(currentSubject.name, TextRange(currentSubject.name.length)))
         }
+        val isDuplicateCode = SubjectCodes.isTaken(codeValue.text, subjects, editingSubjectId = currentSubject.id)
 
         AlertDialog(
             onDismissRequest = { subjectToEdit = null },
@@ -54,6 +56,10 @@ fun SubjectManageSection(
                             }
                         },
                         label = { Text("Siglas") },
+                        isError = isDuplicateCode,
+                        supportingText = if (isDuplicateCode) {
+                            { Text(SubjectCodes.DUPLICATE_MESSAGE) }
+                        } else null,
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -73,7 +79,7 @@ fun SubjectManageSection(
                         onUpdateSubject(currentSubject, codeValue.text.trim(), nameValue.text.trim())
                         subjectToEdit = null
                     },
-                    enabled = codeValue.text.isNotBlank()
+                    enabled = codeValue.text.isNotBlank() && !isDuplicateCode
                 ) {
                     Text("Guardar")
                 }

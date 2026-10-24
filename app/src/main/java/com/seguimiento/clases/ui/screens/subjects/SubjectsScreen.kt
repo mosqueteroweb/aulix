@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.SubjectEntity
 import com.seguimiento.clases.ui.components.SubjectBadge
 import com.seguimiento.clases.ui.theme.parseColor
+import com.seguimiento.clases.util.SubjectCodes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,6 +36,7 @@ fun SubjectsScreen(
 
     if (showCreateDialog) {
         CreateSubjectDialog(
+            existingSubjects = uiState.activeSubjects + uiState.archivedSubjects,
             onDismiss = { showCreateDialog = false },
             onCreate = { code, name, color ->
                 viewModel.createSubject(code, name, color)
@@ -180,9 +182,11 @@ fun SubjectCard(
 @Composable
 fun CreateSubjectDialog(
     onDismiss: () -> Unit,
-    onCreate: (code: String, name: String, colorHex: String) -> Unit
+    onCreate: (code: String, name: String, colorHex: String) -> Unit,
+    existingSubjects: List<SubjectEntity> = emptyList()
 ) {
     var code by remember { mutableStateOf("") }
+    val isDuplicateCode = SubjectCodes.isTaken(code, existingSubjects)
     var name by remember { mutableStateOf("") }
     var selectedColor by remember { mutableStateOf("#2563EB") }
 
@@ -205,6 +209,10 @@ fun CreateSubjectDialog(
                     value = code,
                     onValueChange = { code = it.take(8) },
                     label = { Text("Siglas (ej. DI, SI)") },
+                    isError = isDuplicateCode,
+                    supportingText = if (isDuplicateCode) {
+                        { Text(SubjectCodes.DUPLICATE_MESSAGE) }
+                    } else null,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -258,7 +266,7 @@ fun CreateSubjectDialog(
         confirmButton = {
             Button(
                 onClick = { onCreate(code, name, selectedColor) },
-                enabled = code.isNotBlank()
+                enabled = code.isNotBlank() && !isDuplicateCode
             ) {
                 Text("Crear")
             }
