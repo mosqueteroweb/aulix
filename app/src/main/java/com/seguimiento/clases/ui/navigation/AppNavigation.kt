@@ -127,12 +127,15 @@ fun AppNavigation(
             factory = TodayViewModel.provideFactory(repository)
         )
 
-        // Al pasar a segundo plano, guardar sin esperar al debounce los textos aún no persistidos
+        // Al volver a primer plano, recalcular «hoy» (puede haber pasado la medianoche);
+        // al pasar a segundo plano, guardar sin esperar al debounce los textos aún no persistidos
         val lifecycleOwner = LocalLifecycleOwner.current
         DisposableEffect(lifecycleOwner, todayViewModel) {
             val observer = LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_STOP) {
-                    todayViewModel.savePendingDraftsNow()
+                when (event) {
+                    Lifecycle.Event.ON_START -> todayViewModel.refreshToday()
+                    Lifecycle.Event.ON_STOP -> todayViewModel.savePendingDraftsNow()
+                    else -> Unit
                 }
             }
             lifecycleOwner.lifecycle.addObserver(observer)
