@@ -8,11 +8,16 @@ import com.seguimiento.clases.data.local.entity.ClassLogEntity
 import com.seguimiento.clases.data.local.entity.IdeaEntity
 import com.seguimiento.clases.data.repository.ClassRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.DayOfWeek
+import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -49,15 +54,10 @@ class TodayViewModel(
     private val repository: ClassRepository
 ) : ViewModel() {
 
-    private fun adjustToWeekday(date: LocalDate): LocalDate {
-        return when (date.dayOfWeek) {
-            DayOfWeek.SATURDAY -> date.plusDays(2)
-            DayOfWeek.SUNDAY -> date.plusDays(1)
-            else -> date
-        }
-    }
+    // Día lectivo que corresponde a «hoy»; se recalcula al cruzar la medianoche
+    private val _schoolToday = MutableStateFlow(adjustToWeekday(LocalDate.now()))
 
-    private val _selectedDate = MutableStateFlow(adjustToWeekday(LocalDate.now()))
+    private val _selectedDate = MutableStateFlow(_schoolToday.value)
     val selectedDate: StateFlow<LocalDate> = _selectedDate.asStateFlow()
 
     private val _activeBottomSheetSubjectId = MutableStateFlow<Long?>(null)
@@ -115,10 +115,10 @@ class TodayViewModel(
         },
         _draftLogs,
         _activeBottomSheetSubjectId,
-        repository.getPinnedNote()
-    ) { (date, dbSessions, expandedIds), drafts, bottomSheetId, pinnedNoteText ->
+        repository.getPinnedNote(),
+        _schoolToday
+    ) { (date, dbSessions, expandedIds), drafts, bottomSheetId, pinnedNoteText, currentSchoolToday ->
         val dayOfWeek = date.dayOfWeek.value // 1 = Lunes, 5 = Viernes
-        val currentSchoolToday = adjustToWeekday(LocalDate.now())
         val isToday = date.isEqual(currentSchoolToday)
 
         val dayName = date.format(DateTimeFormatter.ofPattern("EEEE", spanishLocale))
@@ -163,6 +163,34 @@ class TodayViewModel(
         initialValue = TodayUiState()
     )
 
+    init {
+        // Con la app abierta en primer plano, actualizar «hoy» justo después de la medianoche
+        viewModelScope.launch {
+            while (true) {
+                val now = LocalDateTime.now()
+                val nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay()
+                delay(Duration.between(now, nextMidnight).toMillis() + 1_000L)
+                refreshToday()
+            }
+        }
+    }
+
+    /**
+     * Recalcula el día lectivo actual (al volver a primer plano o tras la medianoche). Si el
+     * usuario estaba viendo el «hoy» anterior, pasa al nuevo; si navegaba por otra fecha, se respeta.
+     */
+    fun refreshToday() {
+        val previousToday = _schoolToday.value
+        val newToday = adjustToWeekday(LocalDate.now())
+        if (newToday == previousToday) return
+        val newSelected = selectedDateAfterDayChange(_selectedDate.value, previousToday, newToday)
+        if (newSelected != _selectedDate.value) {
+            flushPendingDrafts()
+            _selectedDate.value = newSelected
+        }
+        _schoolToday.value = newToday
+    }
+
     private fun flushPendingDrafts() {
         val currentDateString = _selectedDate.value.toString()
         val draftsToSave = _draftLogs.value
@@ -172,12 +200,33 @@ class TodayViewModel(
         _draftLogs.value = emptyMap()
 
         if (draftsToSave.isNotEmpty()) {
-            viewModelScope.launch {
+            viewModelScope.launch(NonCancellable) {
                 draftsToSave.forEach { (subjectId, content) ->
                     repository.saveClassLog(subjectId, currentDateString, content)
                 }
             }
         }
+    }
+
+    /**
+     * Guarda de inmediato los borradores que aún esperan al debounce, por ejemplo cuando la app
+     * pasa a segundo plano y el sistema podría cerrarla antes de que venza el retardo.
+     */
+    fun savePendingDraftsNow() {
+        val dateString = _selectedDate.value.toString()
+        val draftsToSave = _draftLogs.value
+        if (draftsToSave.isEmpty()) return
+        draftsToSave.keys.forEach { subjectId -> saveDebounceJobs.remove(subjectId)?.cancel() }
+        viewModelScope.launch(NonCancellable) {
+            draftsToSave.forEach { (subjectId, content) ->
+                saveLogToDb(subjectId, dateString, content)
+            }
+        }
+    }
+
+    override fun onCleared() {
+        savePendingDraftsNow()
+        super.onCleared()
     }
 
     fun onPreviousDay() {
@@ -204,7 +253,9 @@ class TodayViewModel(
 
     fun onGoToToday() {
         flushPendingDrafts()
-        _selectedDate.value = adjustToWeekday(LocalDate.now())
+        val today = adjustToWeekday(LocalDate.now())
+        _schoolToday.value = today
+        _selectedDate.value = today
     }
 
     fun onSelectDate(dateString: String) {
@@ -245,7 +296,21 @@ class TodayViewModel(
     }
 
     private suspend fun saveLogToDb(subjectId: Long, dateString: String, content: String) {
-        repository.saveClassLog(subjectId, dateString, content)
+        // Un guardado ya iniciado termina aunque llegue otra pulsación o se cierre el ViewModel
+        withContext(NonCancellable) {
+            repository.saveClassLog(subjectId, dateString, content)
+        }
+        // Retirar el borrador cuando Room ya refleja ese mismo texto, para que los cambios
+        // hechos desde otras pantallas (Historial, restaurar copia) vuelvan a verse en Hoy.
+        // Se espera a la emisión de Room para que la caja de texto no parpadee al texto anterior.
+        val confirmed = withTimeoutOrNull(2_000L) {
+            repository.getLogForSubjectAndDate(subjectId, dateString).first { it?.content == content }
+        }
+        if (confirmed != null && _selectedDate.value.toString() == dateString) {
+            _draftLogs.update { current ->
+                if (current[subjectId] == content) current - subjectId else current
+            }
+        }
     }
 
     fun clearCurrentLog(subjectId: Long) {
@@ -268,10 +333,7 @@ class TodayViewModel(
     fun saveOrUpdatePriorLog(initialLog: ClassLogEntity?, newDate: String, newContent: String, subjectId: Long) {
         if (newContent.isBlank()) return
         viewModelScope.launch {
-            if (initialLog != null && initialLog.date != newDate) {
-                repository.deleteClassLog(initialLog)
-            }
-            repository.saveClassLog(subjectId, newDate, newContent.trim())
+            repository.saveLogFromDialog(subjectId, newDate, newContent.trim(), initialLog)
         }
     }
 
@@ -315,9 +377,21 @@ class TodayViewModel(
         }
     }
 
-    private data class Tuple4<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
-
     companion object {
+        /** Los fines de semana no hay clase: sábado y domingo se muestran como el lunes siguiente. */
+        fun adjustToWeekday(date: LocalDate): LocalDate {
+            return when (date.dayOfWeek) {
+                DayOfWeek.SATURDAY -> date.plusDays(2)
+                DayOfWeek.SUNDAY -> date.plusDays(1)
+                else -> date
+            }
+        }
+
+        /** Fecha a mostrar cuando cambia el día lectivo actual de [previousToday] a [newToday]. */
+        fun selectedDateAfterDayChange(selected: LocalDate, previousToday: LocalDate, newToday: LocalDate): LocalDate {
+            return if (selected == previousToday) newToday else selected
+        }
+
         fun provideFactory(repository: ClassRepository): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")

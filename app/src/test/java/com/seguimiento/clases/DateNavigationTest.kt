@@ -1,19 +1,13 @@
 package com.seguimiento.clases
 
+import com.seguimiento.clases.ui.screens.today.TodayViewModel.Companion.adjustToWeekday
+import com.seguimiento.clases.ui.screens.today.TodayViewModel.Companion.selectedDateAfterDayChange
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.DayOfWeek
 import java.time.LocalDate
 
 class DateNavigationTest {
-
-    private fun adjustToWeekday(date: LocalDate): LocalDate {
-        return when (date.dayOfWeek) {
-            DayOfWeek.SATURDAY -> date.plusDays(2)
-            DayOfWeek.SUNDAY -> date.plusDays(1)
-            else -> date
-        }
-    }
 
     private fun nextSchoolDay(date: LocalDate): LocalDate {
         var next = date.plusDays(1)
@@ -64,5 +58,22 @@ class DateNavigationTest {
         val wednesday = LocalDate.of(2026, 9, 16)
         assertEquals(DayOfWeek.WEDNESDAY, wednesday.dayOfWeek)
         assertEquals(wednesday, adjustToWeekday(wednesday))
+    }
+
+    @Test
+    fun testMidnightMovesSelectionOnlyWhenViewingToday() {
+        val tuesday = LocalDate.of(2026, 9, 22)
+        val wednesday = LocalDate.of(2026, 9, 23)
+        val lastFriday = LocalDate.of(2026, 9, 18)
+
+        // Viendo el «hoy» anterior: pasa al nuevo día
+        assertEquals(wednesday, selectedDateAfterDayChange(tuesday, tuesday, wednesday))
+        // Navegando por otra fecha: se respeta la fecha elegida
+        assertEquals(lastFriday, selectedDateAfterDayChange(lastFriday, tuesday, wednesday))
+
+        // Viernes a medianoche: el nuevo «hoy» lectivo es el lunes
+        val friday = LocalDate.of(2026, 9, 25)
+        val newToday = adjustToWeekday(friday.plusDays(1))
+        assertEquals(LocalDate.of(2026, 9, 28), selectedDateAfterDayChange(friday, friday, newToday))
     }
 }

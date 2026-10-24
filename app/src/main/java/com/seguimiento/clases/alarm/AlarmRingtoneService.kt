@@ -232,7 +232,7 @@ class AlarmRingtoneService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(R.drawable.ic_stat_aulix)
             .setContentTitle("⏰ ¡Alarma de Aulix!")
             .setContentText("Alarma en curso. Toca para posponer o cancelar.")
             .setPriority(NotificationCompat.PRIORITY_MAX)

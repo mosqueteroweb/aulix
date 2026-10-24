@@ -1,8 +1,13 @@
 package com.seguimiento.clases.ui.screens.alarm
 
 import android.Manifest
+import android.app.NotificationManager
+import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -27,11 +32,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.seguimiento.clases.ui.screens.alarm.components.WheelTimePicker
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -238,6 +246,8 @@ fun AlarmScreen(
                 )
             }
 
+            FullScreenAlarmPermissionWarning()
+
             Spacer(modifier = Modifier.height(20.dp))
 
             // Tarjeta explicativa de funcionamiento
@@ -334,4 +344,69 @@ private fun FeatureRow(
             )
         }
     }
+}
+
+/**
+ * En Android 14+ el permiso para mostrar la alarma a pantalla completa puede estar denegado;
+ * sin él, la alarma solo aparece como notificación con el móvil bloqueado. Muestra un aviso
+ * con acceso directo al ajuste del sistema y se vuelve a comprobar al regresar a la app.
+ */
+@Composable
+private fun FullScreenAlarmPermissionWarning() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return
+
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var canUseFullScreen by remember { mutableStateOf(canUseFullScreenIntent(context)) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                canUseFullScreen = canUseFullScreenIntent(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    if (canUseFullScreen) return
+
+    Spacer(modifier = Modifier.height(16.dp))
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "La alarma no podrá mostrarse a pantalla completa",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Con el móvil bloqueado solo verás una notificación. Activa el permiso en los ajustes del sistema.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(
+                onClick = {
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                        Uri.parse("package:${context.packageName}")
+                    )
+                    context.startActivity(intent)
+                }
+            ) {
+                Text("Abrir ajustes")
+            }
+        }
+    }
+}
+
+private fun canUseFullScreenIntent(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) return true
+    return context.getSystemService(NotificationManager::class.java).canUseFullScreenIntent()
 }

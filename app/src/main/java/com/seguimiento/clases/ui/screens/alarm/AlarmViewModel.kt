@@ -1,10 +1,12 @@
 package com.seguimiento.clases.ui.screens.alarm
 
 import android.app.Application
+import android.content.Intent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.seguimiento.clases.alarm.AlarmRingtoneService
 import com.seguimiento.clases.alarm.AlarmScheduler
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -131,6 +133,9 @@ class AlarmViewModel(
 
     fun cancelAlarm() {
         scheduler.cancelAlarm()
+        // Si la alarma está sonando en este momento, detener también el sonido y la vibración
+        val context = getApplication<Application>()
+        context.stopService(Intent(context, AlarmRingtoneService::class.java))
         val hour = _uiState.value.selectedHour
         val minute = _uiState.value.selectedMinute
 

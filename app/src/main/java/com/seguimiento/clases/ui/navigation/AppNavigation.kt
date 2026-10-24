@@ -22,10 +22,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.seguimiento.clases.data.repository.ClassRepository
 import android.app.Application
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.alarm.AlarmScheduler
 import com.seguimiento.clases.ui.screens.alarm.AlarmScreen
@@ -122,6 +126,21 @@ fun AppNavigation(
         val todayViewModel: TodayViewModel = viewModel(
             factory = TodayViewModel.provideFactory(repository)
         )
+
+        // Al volver a primer plano, recalcular «hoy» (puede haber pasado la medianoche);
+        // al pasar a segundo plano, guardar sin esperar al debounce los textos aún no persistidos
+        val lifecycleOwner = LocalLifecycleOwner.current
+        DisposableEffect(lifecycleOwner, todayViewModel) {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_START -> todayViewModel.refreshToday()
+                    Lifecycle.Event.ON_STOP -> todayViewModel.savePendingDraftsNow()
+                    else -> Unit
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
 
         NavHost(
             navController = navController,

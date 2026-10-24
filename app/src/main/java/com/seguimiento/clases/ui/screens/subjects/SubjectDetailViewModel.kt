@@ -67,10 +67,7 @@ class SubjectDetailViewModel(
     fun saveOrUpdateLog(initialLog: ClassLogEntity?, date: String, content: String) {
         if (content.isBlank()) return
         viewModelScope.launch {
-            if (initialLog != null && initialLog.date != date) {
-                repository.deleteClassLog(initialLog)
-            }
-            repository.saveClassLog(subjectId, date, content.trim())
+            repository.saveLogFromDialog(subjectId, date, content.trim(), initialLog)
         }
     }
 

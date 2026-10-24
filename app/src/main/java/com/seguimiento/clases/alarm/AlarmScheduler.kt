@@ -52,6 +52,14 @@ class AlarmScheduler(private val context: Context) {
         }
 
         /**
+         * Indica si una alarma guardada debe volver a programarse (p. ej. tras reiniciar el móvil):
+         * solo si estaba activa y su hora de disparo aún no ha pasado.
+         */
+        fun shouldRestoreAlarm(isActive: Boolean, triggerMillis: Long, nowMillis: Long = System.currentTimeMillis()): Boolean {
+            return isActive && triggerMillis > nowMillis
+        }
+
+        /**
          * Formatea el tiempo restante de forma legible en español.
          */
         fun formatRemainingTime(triggerMillis: Long, nowMillis: Long = System.currentTimeMillis()): String {
@@ -65,8 +73,11 @@ class AlarmScheduler(private val context: Context) {
             val cal = Calendar.getInstance().apply { timeInMillis = triggerMillis }
             val targetHour = String.format("%02d:%02d", cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
 
-            val isTomorrow = diffMillis > (24 * 60 * 60 * 1000L - (nowMillis % (24 * 60 * 60 * 1000L)))
-            val dayPrefix = if (isTomorrow || hours >= 18) "mañana " else "hoy "
+            // Comparar días en el calendario local (no en UTC) para decidir entre «hoy» y «mañana»
+            val nowCal = Calendar.getInstance().apply { timeInMillis = nowMillis }
+            val isSameDay = cal.get(Calendar.YEAR) == nowCal.get(Calendar.YEAR) &&
+                cal.get(Calendar.DAY_OF_YEAR) == nowCal.get(Calendar.DAY_OF_YEAR)
+            val dayPrefix = if (isSameDay) "hoy " else "mañana "
 
             return when {
                 hours == 0 && minutes == 0 -> "Sonará en menos de 1 minuto"
@@ -108,6 +119,22 @@ class AlarmScheduler(private val context: Context) {
         val pendingIntent = createAlarmPendingIntent()
         alarmManager.cancel(pendingIntent)
         saveState(isActive = false, triggerMillis = 0L, hour = getSavedHour(), minute = getSavedMinute())
+    }
+
+    /**
+     * Vuelve a registrar en el sistema la alarma guardada. Android borra las alarmas al reiniciar,
+     * así que se invoca desde [BootReceiver]. Si la hora ya pasó con el móvil apagado, se desactiva.
+     */
+    fun restoreScheduledAlarm() {
+        val isActive = prefs.getBoolean(KEY_IS_ACTIVE, false)
+        if (!isActive) return
+
+        val triggerMillis = getTriggerMillis()
+        if (shouldRestoreAlarm(isActive, triggerMillis)) {
+            setAlarmExact(triggerMillis)
+        } else {
+            saveState(isActive = false, triggerMillis = 0L, hour = getSavedHour(), minute = getSavedMinute())
+        }
     }
 
     /**

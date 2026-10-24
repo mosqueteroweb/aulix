@@ -189,14 +189,14 @@ class BackupManager(
                     )
                 }
                 database.ideaDao().insertIdeas(ideaEntities)
-
-                if (backup.pinnedNote != null) {
-                    context.getSharedPreferences("aulix_pinned_notes", android.content.Context.MODE_PRIVATE)
-                        .edit()
-                        .putString("key_pinned_note", backup.pinnedNote)
-                        .apply()
-                }
             }
+
+            // La nota fija vive en preferencias, fuera de Room: se sustituye solo si la
+            // transacción anterior terminó bien. Una copia sin nota deja la nota vacía.
+            context.getSharedPreferences("aulix_pinned_notes", android.content.Context.MODE_PRIVATE)
+                .edit()
+                .putString("key_pinned_note", backup.pinnedNote.orEmpty())
+                .commit()
 
             Result.success(backup.classLogs.size)
         } catch (e: Exception) {
