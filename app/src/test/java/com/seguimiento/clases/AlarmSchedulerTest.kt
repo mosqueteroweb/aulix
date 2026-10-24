@@ -61,6 +61,39 @@ class AlarmSchedulerTest {
     }
 
     @Test
+    fun testFormatRemainingTimeDayPrefixUsesLocalCalendar() {
+        val lateNight = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 30)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+        // 23:30 -> alarma a las 00:30: es mañana aunque falte solo 1 hora
+        val afterMidnight = AlarmScheduler.calculateNextTriggerMillis(0, 30, lateNight)
+        assertTrue(AlarmScheduler.formatRemainingTime(afterMidnight, lateNight).contains("mañana a las 00:30"))
+
+        // 23:30 -> alarma a las 23:50: sigue siendo hoy
+        val sameNight = AlarmScheduler.calculateNextTriggerMillis(23, 50, lateNight)
+        assertTrue(AlarmScheduler.formatRemainingTime(sameNight, lateNight).contains("hoy a las 23:50"))
+
+        val morning = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 6)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+
+        // 06:00 -> alarma a las 23:00 (17 h): hoy
+        val tonight = AlarmScheduler.calculateNextTriggerMillis(23, 0, morning)
+        assertTrue(AlarmScheduler.formatRemainingTime(tonight, morning).contains("hoy a las 23:00"))
+
+        // 06:00 -> alarma a las 05:00 (23 h): mañana
+        val nextMorning = AlarmScheduler.calculateNextTriggerMillis(5, 0, morning)
+        assertTrue(AlarmScheduler.formatRemainingTime(nextMorning, morning).contains("mañana a las 05:00"))
+    }
+
+    @Test
     fun testFormatRemainingTime() {
         val now = System.currentTimeMillis()
 

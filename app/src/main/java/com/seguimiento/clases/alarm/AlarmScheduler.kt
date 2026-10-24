@@ -73,8 +73,11 @@ class AlarmScheduler(private val context: Context) {
             val cal = Calendar.getInstance().apply { timeInMillis = triggerMillis }
             val targetHour = String.format("%02d:%02d", cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE))
 
-            val isTomorrow = diffMillis > (24 * 60 * 60 * 1000L - (nowMillis % (24 * 60 * 60 * 1000L)))
-            val dayPrefix = if (isTomorrow || hours >= 18) "mañana " else "hoy "
+            // Comparar días en el calendario local (no en UTC) para decidir entre «hoy» y «mañana»
+            val nowCal = Calendar.getInstance().apply { timeInMillis = nowMillis }
+            val isSameDay = cal.get(Calendar.YEAR) == nowCal.get(Calendar.YEAR) &&
+                cal.get(Calendar.DAY_OF_YEAR) == nowCal.get(Calendar.DAY_OF_YEAR)
+            val dayPrefix = if (isSameDay) "hoy " else "mañana "
 
             return when {
                 hours == 0 && minutes == 0 -> "Sonará en menos de 1 minuto"
