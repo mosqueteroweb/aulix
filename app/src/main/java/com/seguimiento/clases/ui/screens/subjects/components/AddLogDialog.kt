@@ -12,6 +12,7 @@ import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
+import com.seguimiento.clases.util.DateUtils
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -39,6 +40,13 @@ fun AddEditLogDialog(
             localDate.atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
         } catch (e: Exception) {
             System.currentTimeMillis()
+        },
+        // Las anotaciones son de lo ya visto en clase: no se permiten fechas futuras
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean =
+                DateUtils.isSelectableLogDate(utcTimeMillis)
+
+            override fun isSelectableYear(year: Int): Boolean = year <= LocalDate.now().year
         }
     )
 
@@ -99,7 +107,7 @@ fun AddEditLogDialog(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = dateString,
+                                text = DateUtils.formatShortDate(dateString),
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         }
