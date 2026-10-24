@@ -8,9 +8,12 @@ import com.seguimiento.clases.data.local.entity.ClassLogEntity
 import com.seguimiento.clases.data.local.entity.IdeaEntity
 import com.seguimiento.clases.data.repository.ClassRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -172,12 +175,33 @@ class TodayViewModel(
         _draftLogs.value = emptyMap()
 
         if (draftsToSave.isNotEmpty()) {
-            viewModelScope.launch {
+            viewModelScope.launch(NonCancellable) {
                 draftsToSave.forEach { (subjectId, content) ->
                     repository.saveClassLog(subjectId, currentDateString, content)
                 }
             }
         }
+    }
+
+    /**
+     * Guarda de inmediato los borradores que aún esperan al debounce, por ejemplo cuando la app
+     * pasa a segundo plano y el sistema podría cerrarla antes de que venza el retardo.
+     */
+    fun savePendingDraftsNow() {
+        val dateString = _selectedDate.value.toString()
+        val draftsToSave = _draftLogs.value
+        if (draftsToSave.isEmpty()) return
+        draftsToSave.keys.forEach { subjectId -> saveDebounceJobs.remove(subjectId)?.cancel() }
+        viewModelScope.launch(NonCancellable) {
+            draftsToSave.forEach { (subjectId, content) ->
+                saveLogToDb(subjectId, dateString, content)
+            }
+        }
+    }
+
+    override fun onCleared() {
+        savePendingDraftsNow()
+        super.onCleared()
     }
 
     fun onPreviousDay() {
@@ -245,7 +269,21 @@ class TodayViewModel(
     }
 
     private suspend fun saveLogToDb(subjectId: Long, dateString: String, content: String) {
-        repository.saveClassLog(subjectId, dateString, content)
+        // Un guardado ya iniciado termina aunque llegue otra pulsación o se cierre el ViewModel
+        withContext(NonCancellable) {
+            repository.saveClassLog(subjectId, dateString, content)
+        }
+        // Retirar el borrador cuando Room ya refleja ese mismo texto, para que los cambios
+        // hechos desde otras pantallas (Historial, restaurar copia) vuelvan a verse en Hoy.
+        // Se espera a la emisión de Room para que la caja de texto no parpadee al texto anterior.
+        val confirmed = withTimeoutOrNull(2_000L) {
+            repository.getLogForSubjectAndDate(subjectId, dateString).first { it?.content == content }
+        }
+        if (confirmed != null && _selectedDate.value.toString() == dateString) {
+            _draftLogs.update { current ->
+                if (current[subjectId] == content) current - subjectId else current
+            }
+        }
     }
 
     fun clearCurrentLog(subjectId: Long) {
