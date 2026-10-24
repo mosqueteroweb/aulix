@@ -2,6 +2,7 @@ package com.seguimiento.clases.data.repository
 
 import android.content.Context
 import android.net.Uri
+import androidx.room.withTransaction
 import com.seguimiento.clases.data.backup.BackupManager
 import com.seguimiento.clases.data.local.AppDatabase
 import com.seguimiento.clases.data.local.dao.SessionWithSubjectInfo
@@ -125,6 +126,26 @@ class ClassRepository(
         classLogDao.upsertLog(log)
     }
 
+    /**
+     * Guarda una anotación creada o editada desde un diálogo con selector de fecha.
+     * Si la fecha destino ya tiene otra anotación, el texto se añade al final en lugar de
+     * sustituirla (una anotación por fecha, ampliable). Si se cambió la fecha de [editedLog],
+     * la anotación original se elimina en la misma transacción.
+     */
+    suspend fun saveLogFromDialog(subjectId: Long, date: String, content: String, editedLog: ClassLogEntity?) {
+        database.withTransaction {
+            if (editedLog != null && editedLog.date == date) {
+                saveClassLog(subjectId, date, content)
+                return@withTransaction
+            }
+            if (editedLog != null) {
+                classLogDao.deleteLog(editedLog)
+            }
+            val existing = classLogDao.getLogForSubjectAndDateOnce(subjectId, date)
+            saveClassLog(subjectId, date, mergeLogContent(existing?.content, content))
+        }
+    }
+
     suspend fun toggleLogCompleted(subjectId: Long, date: String, draftContent: String? = null) {
         val existing = classLogDao.getLogForSubjectAndDateOnce(subjectId, date)
         if (existing != null) {
@@ -196,4 +217,17 @@ class ClassRepository(
     // --- BACKUP ---
     suspend fun exportBackup(targetUri: Uri): Result<Unit> = backupManager.exportBackup(targetUri)
     suspend fun importBackup(sourceUri: Uri): Result<Int> = backupManager.importBackup(sourceUri)
+
+    companion object {
+        /** Une el texto nuevo al de una anotación existente, separado por una línea en blanco. */
+        fun mergeLogContent(existingContent: String?, addedContent: String): String {
+            val existing = existingContent?.trimEnd().orEmpty()
+            val added = addedContent.trim()
+            return when {
+                existing.isBlank() -> added
+                added.isBlank() -> existing
+                else -> "$existing\n\n$added"
+            }
+        }
+    }
 }

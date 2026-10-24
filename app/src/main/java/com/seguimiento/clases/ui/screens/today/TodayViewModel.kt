@@ -268,10 +268,7 @@ class TodayViewModel(
     fun saveOrUpdatePriorLog(initialLog: ClassLogEntity?, newDate: String, newContent: String, subjectId: Long) {
         if (newContent.isBlank()) return
         viewModelScope.launch {
-            if (initialLog != null && initialLog.date != newDate) {
-                repository.deleteClassLog(initialLog)
-            }
-            repository.saveClassLog(subjectId, newDate, newContent.trim())
+            repository.saveLogFromDialog(subjectId, newDate, newContent.trim(), initialLog)
         }
     }
 
