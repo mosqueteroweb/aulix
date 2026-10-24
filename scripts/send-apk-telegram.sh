@@ -8,9 +8,13 @@
 #   También se pueden pasar como variables de entorno.
 #
 # Uso:
-#   ./scripts/send-apk-telegram.sh              -> envía app/build/outputs/apk/debug/aulix-*-debug.apk
-#   ./scripts/send-apk-telegram.sh ruta.apk     -> envía ese APK
-#   ./scripts/send-apk-telegram.sh --chat-id    -> muestra los chat id que han escrito al bot
+#   ./scripts/send-apk-telegram.sh                      -> envía app/build/outputs/apk/debug/aulix-*-debug.apk
+#   ./scripts/send-apk-telegram.sh ruta.apk             -> envía ese APK
+#   ./scripts/send-apk-telegram.sh -m "resumen" [apk]   -> añade un resumen de cambios al mensaje
+#   ./scripts/send-apk-telegram.sh --chat-id            -> muestra los chat id que han escrito al bot
+#
+# El resumen debe ser corto, con iconos y poco texto, una línea por cambio, p. ej.:
+#   -m $'🔔 La alarma vuelve tras reiniciar\n📝 Las notas del mismo día se suman'
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -40,6 +44,12 @@ if [[ -z "${TELEGRAM_CHAT_ID:-}" ]]; then
   exit 1
 fi
 
+SUMMARY=""
+if [[ "${1:-}" == "-m" ]]; then
+  SUMMARY="${2:-}"
+  shift 2
+fi
+
 APK="${1:-}"
 if [[ -z "$APK" ]]; then
   APK=$(ls -t "$ROOT"/app/build/outputs/apk/debug/aulix-*-debug.apk 2>/dev/null | head -1 || true)
@@ -51,9 +61,18 @@ fi
 
 BRANCH=$(git -C "$ROOT" rev-parse --abbrev-ref HEAD)
 COMMIT=$(git -C "$ROOT" log -1 --format='%h %s')
-CAPTION="Aulix $(basename "$APK")
-Rama: $BRANCH
-Último commit: $COMMIT"
+VERSION=$(basename "$APK" | sed -E 's/^aulix-(.*)-debug\.apk$/\1/')
+CAPTION="📦 Aulix $VERSION"
+if [[ -n "$SUMMARY" ]]; then
+  CAPTION="$CAPTION
+
+$SUMMARY"
+fi
+CAPTION="$CAPTION
+
+🌿 $BRANCH · $(echo "$COMMIT" | cut -d' ' -f1)"
+# Telegram admite como máximo 1024 caracteres en el texto de un archivo
+CAPTION="${CAPTION:0:1024}"
 
 RESPONSE=$(curl -sS -F "chat_id=$TELEGRAM_CHAT_ID" -F "caption=$CAPTION" -F "document=@$APK" "$API/sendDocument")
 if echo "$RESPONSE" | grep -q '"ok":true'; then
