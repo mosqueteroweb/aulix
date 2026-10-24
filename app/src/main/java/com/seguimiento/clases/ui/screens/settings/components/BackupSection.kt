@@ -20,8 +20,11 @@ import java.time.LocalDate
 fun BackupSection(
     onExport: (Uri) -> Unit,
     onImport: (Uri) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isExporting: Boolean = false,
+    isImporting: Boolean = false
 ) {
+    val isBusy = isExporting || isImporting
     var showImportWarningDialog by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -122,6 +125,17 @@ fun BackupSection(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            if (isBusy) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = if (isExporting) "Guardando la copia…" else "Restaurando la copia…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -133,6 +147,7 @@ fun BackupSection(
                         exportLauncher.launch("seguimiento_clases_backup_$today.json")
                     },
                     modifier = Modifier.weight(1f),
+                    enabled = !isBusy,
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
                     shape = RoundedCornerShape(10.dp)
                 ) {
@@ -157,6 +172,7 @@ fun BackupSection(
                         importLauncher.launch(arrayOf("application/json", "text/*"))
                     },
                     modifier = Modifier.weight(1f),
+                    enabled = !isBusy,
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 12.dp),
                     shape = RoundedCornerShape(10.dp)
                 ) {

@@ -7,6 +7,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.seguimiento.clases.alarm.AlarmScheduler
 import com.seguimiento.clases.data.backup.BackupManager
+import com.seguimiento.clases.data.backup.ImportSummary
 import com.seguimiento.clases.data.local.AppDatabase
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
 import com.seguimiento.clases.data.local.entity.IdeaEntity
@@ -103,7 +104,8 @@ class BackupRoundTripTest {
         prefs("aulix_pinned_notes").edit().putString("key_pinned_note", "otra nota").commit()
         scheduler.cancelAlarm()
 
-        assertTrue(backupManager.importBackup(Uri.fromFile(backupFile)).isSuccess)
+        val summary = backupManager.importBackup(Uri.fromFile(backupFile)).getOrThrow()
+        assertEquals(ImportSummary(subjects = 3, classLogs = 3, ideas = 3), summary)
 
         assertEquals(subjects, database.subjectDao().getAllSubjects().first().sortedBy { it.id })
         assertEquals(sessions, database.scheduleDao().getAllRawSessions().sortedBy { it.id })

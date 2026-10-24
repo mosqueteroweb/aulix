@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.room.withTransaction
 import com.seguimiento.clases.data.backup.BackupManager
+import com.seguimiento.clases.data.backup.ImportSummary
 import com.seguimiento.clases.data.local.AppDatabase
 import com.seguimiento.clases.data.local.dao.SessionWithSubjectInfo
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
@@ -215,7 +216,7 @@ class ClassRepository(
 
     // --- BACKUP ---
     suspend fun exportBackup(targetUri: Uri): Result<Unit> = backupManager.exportBackup(targetUri)
-    suspend fun importBackup(sourceUri: Uri): Result<Int> =
+    suspend fun importBackup(sourceUri: Uri): Result<ImportSummary> =
         backupManager.importBackup(sourceUri).onSuccess { reloadPinnedNote() }
 
     companion object {

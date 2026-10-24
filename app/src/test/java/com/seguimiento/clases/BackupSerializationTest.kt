@@ -147,4 +147,12 @@ class BackupSerializationTest {
         val restored = json.decodeFromString<BackupData>(json.encodeToString(backup))
         assertEquals(BackupAlarm(7, 45, true, 123L), restored.alarm)
     }
+
+    @Test
+    fun testImportSuccessMessageCountsWithSingularAndPlural() {
+        val message = com.seguimiento.clases.ui.screens.settings.SettingsViewModel.importSuccessMessage(
+            ImportSummary(subjects = 4, classLogs = 35, ideas = 1)
+        )
+        assertEquals("Copia restaurada: 4 módulos, 35 anotaciones y 1 idea.", message)
+    }
 }
