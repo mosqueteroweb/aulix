@@ -138,6 +138,20 @@ class AlarmScheduler(private val context: Context) {
     }
 
     /**
+     * Aplica la configuración de alarma de una copia de seguridad: guarda la hora elegida y,
+     * si la alarma estaba activa y su hora aún no ha pasado, la vuelve a programar.
+     */
+    fun restoreSettings(hour: Int, minute: Int, isActive: Boolean, triggerMillis: Long) {
+        if (shouldRestoreAlarm(isActive, triggerMillis)) {
+            setAlarmExact(triggerMillis)
+            saveState(isActive = true, triggerMillis = triggerMillis, hour = hour, minute = minute)
+        } else {
+            alarmManager.cancel(createAlarmPendingIntent())
+            saveState(isActive = false, triggerMillis = 0L, hour = hour, minute = minute)
+        }
+    }
+
+    /**
      * Se invoca cuando la alarma expiró automáticamente (por ejemplo tras 1 minuto sin respuesta).
      */
     fun onAlarmAutoExpired() {
