@@ -3,6 +3,9 @@ package com.seguimiento.clases.ui.screens.alarm.components
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.core.calculateTargetValue
+import androidx.compose.animation.rememberSplineBasedDecay
+import androidx.compose.foundation.gestures.snapping.SnapLayoutInfoProvider
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,12 +22,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import kotlin.math.sign
 
 @Composable
 fun WheelTimePicker(
@@ -130,7 +135,22 @@ private fun SingleWheel(
     val startIndex = middleOffset + (selectedValue % valueCount)
 
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = startIndex)
-    val flingBehavior = rememberSnapFlingBehavior(lazyListState = listState)
+    // El ajuste por defecto de LazyList no tiene inercia: cada gesto avanzaba como mucho un
+    // valor. Se recorre primero la distancia que daría la inercia del gesto y después se ajusta
+    // al valor más cercano, así un deslizamiento rápido salta varios valores.
+    val decayAnimationSpec = rememberSplineBasedDecay<Float>()
+    val itemHeightPx = with(LocalDensity.current) { itemHeight.toPx() }
+    val snapLayoutInfoProvider = remember(listState, decayAnimationSpec, itemHeightPx) {
+        val baseProvider = SnapLayoutInfoProvider(listState)
+        object : SnapLayoutInfoProvider by baseProvider {
+            override fun calculateApproachOffset(initialVelocity: Float): Float {
+                val decayOffset = decayAnimationSpec.calculateTargetValue(0f, initialVelocity)
+                val approach = (abs(decayOffset) - itemHeightPx).coerceAtLeast(0f)
+                return approach * sign(decayOffset)
+            }
+        }
+    }
+    val flingBehavior = rememberSnapFlingBehavior(snapLayoutInfoProvider)
     val coroutineScope = rememberCoroutineScope()
 
     // Detectar el elemento centrado
@@ -161,8 +181,11 @@ private fun SingleWheel(
         }
     }
 
-    // Sincronizar si selectedValue cambia desde fuera (por ejemplo al entrar a la pantalla)
+    // Sincronizar si selectedValue cambia desde fuera (por ejemplo al entrar a la pantalla).
+    // Mientras el usuario gira la rueda, selectedValue llega con un paso de retraso: recolocar
+    // entonces devolvía la rueda atrás y cada gesto se quedaba en un solo valor.
     LaunchedEffect(selectedValue) {
+        if (listState.isScrollInProgress) return@LaunchedEffect
         val currentActual = centerIndex % valueCount
         if (currentActual != selectedValue) {
             val newIndex = (centerIndex / valueCount) * valueCount + selectedValue
