@@ -23,7 +23,8 @@ import java.time.format.DateTimeFormatter
 fun AddEditLogDialog(
     initialLog: ClassLogEntity? = null,
     onDismiss: () -> Unit,
-    onSave: (date: String, content: String) -> Unit
+    onSave: (date: String, content: String) -> Unit,
+    dateEditable: Boolean = true
 ) {
     var dateString by remember {
         mutableStateOf(initialLog?.date ?: LocalDate.now().toString())
@@ -90,6 +91,7 @@ fun AddEditLogDialog(
                 // Selector de fecha
                 OutlinedCard(
                     onClick = { showDatePicker = true },
+                    enabled = dateEditable,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(10.dp)
                 ) {
@@ -111,11 +113,13 @@ fun AddEditLogDialog(
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         }
-                        Icon(
-                            imageVector = Icons.Filled.CalendarToday,
-                            contentDescription = "Elegir fecha",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        if (dateEditable) {
+                            Icon(
+                                imageVector = Icons.Filled.CalendarToday,
+                                contentDescription = "Elegir fecha",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
 

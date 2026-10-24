@@ -61,7 +61,8 @@ fun ClassSessionCard(
     onOpenIdeasBottomSheet: () -> Unit,
     onToggleCompleted: () -> Unit,
     modifier: Modifier = Modifier,
-    dayOfWeek: Int = 1
+    dayOfWeek: Int = 1,
+    selectedDate: String = ""
 ) {
     val subject = cardState.session.subject
     val sessionId = cardState.session.session.id
@@ -73,17 +74,19 @@ fun ClassSessionCard(
         var showEditCompletedDialog by remember { mutableStateOf(false) }
 
         if (showEditCompletedDialog) {
+            // Solo se edita el texto del día que se está viendo en Hoy: la fecha se muestra fija
             AddEditLogDialog(
                 initialLog = ClassLogEntity(
                     subjectId = subjectId,
-                    date = "",
+                    date = selectedDate,
                     content = cardState.currentLogContent
                 ),
                 onDismiss = { showEditCompletedDialog = false },
                 onSave = { _, newContent ->
                     onContentChange(newContent)
                     showEditCompletedDialog = false
-                }
+                },
+                dateEditable = false
             )
         }
 
