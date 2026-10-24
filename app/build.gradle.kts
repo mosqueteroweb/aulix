@@ -1,9 +1,19 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
     id("org.jetbrains.kotlin.plugin.serialization")
 }
+
+// La versión vive en version.properties (raíz del proyecto) y se cambia con scripts/bump-version.sh
+val versionProps = Properties().apply {
+    rootProject.file("version.properties").inputStream().use { load(it) }
+}
+val appVersionName = listOf("VERSION_MAJOR", "VERSION_MINOR", "VERSION_PATCH")
+    .joinToString(".") { versionProps.getProperty(it) }
+val appVersionCode = versionProps.getProperty("VERSION_CODE").toInt()
 
 android {
     namespace = "com.seguimiento.clases"
@@ -13,8 +23,10 @@ android {
         applicationId = "com.seguimiento.clases"
         minSdk = 26
         targetSdk = 34
-        versionCode = 16
-        versionName = "1.0.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
+        // El APK se genera como aulix-<versión>-<tipo>.apk
+        setProperty("archivesBaseName", "aulix-$appVersionName")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
