@@ -120,4 +120,31 @@ class BackupSerializationTest {
         assertEquals(1, dateResults.size)
         assertEquals(2L, dateResults[0].id)
     }
+
+    @Test
+    fun testOldBackupWithoutPinnedNoteOrAlarmStillParses() {
+        // Formato exportado por la 0.5.1: sin nota fija ni alarma
+        val oldJson = """
+            {"version":1,"app":"SeguimientoClases","exportedAt":1,
+             "subjects":[{"id":1,"code":"DI","name":"Desarrollo de Interfaces","colorHex":"#2563EB","isArchived":false,"displayOrder":1}],
+             "scheduleSessions":[{"id":1,"dayOfWeek":1,"subjectId":1,"orderIndex":0}],
+             "classLogs":[{"id":1,"subjectId":1,"date":"2026-10-19","content":"Tema 1","isCompleted":true,"updatedAt":2}],
+             "ideas":[{"id":1,"subjectId":1,"text":"Idea","isUsed":true,"createdAt":3,"updatedAt":4}]}
+        """.trimIndent()
+
+        val backup = json.decodeFromString<BackupData>(oldJson)
+
+        assertNull(backup.pinnedNote)
+        assertNull(backup.alarm)
+        assertEquals(1, backup.subjects.size)
+        assertTrue(backup.classLogs.single().isCompleted)
+        assertTrue(backup.ideas.single().isUsed)
+    }
+
+    @Test
+    fun testAlarmSettingsSurviveSerialization() {
+        val backup = BackupData(alarm = BackupAlarm(hour = 7, minute = 45, isActive = true, triggerMillis = 123L))
+        val restored = json.decodeFromString<BackupData>(json.encodeToString(backup))
+        assertEquals(BackupAlarm(7, 45, true, 123L), restored.alarm)
+    }
 }

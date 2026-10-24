@@ -11,7 +11,17 @@ data class BackupData(
     val scheduleSessions: List<BackupScheduleSession> = emptyList(),
     val classLogs: List<BackupClassLog> = emptyList(),
     val ideas: List<BackupIdea> = emptyList(),
-    val pinnedNote: String? = null
+    val pinnedNote: String? = null,
+    // Ausente en copias anteriores a la 1.0.2: en ese caso la alarma del móvil no se toca
+    val alarm: BackupAlarm? = null
+)
+
+@Serializable
+data class BackupAlarm(
+    val hour: Int,
+    val minute: Int,
+    val isActive: Boolean = false,
+    val triggerMillis: Long = 0L
 )
 
 @Serializable

@@ -3,6 +3,7 @@ package com.seguimiento.clases.data.backup
 import android.content.Context
 import android.net.Uri
 import androidx.room.withTransaction
+import com.seguimiento.clases.alarm.AlarmScheduler
 import com.seguimiento.clases.data.local.AppDatabase
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
 import com.seguimiento.clases.data.local.entity.IdeaEntity
@@ -76,7 +77,16 @@ class BackupManager(
                     )
                 },
                 pinnedNote = context.getSharedPreferences("aulix_pinned_notes", android.content.Context.MODE_PRIVATE)
-                    .getString("key_pinned_note", null)
+                    .getString("key_pinned_note", null),
+                alarm = AlarmScheduler(context).let { scheduler ->
+                    val isActive = scheduler.isAlarmActive()
+                    BackupAlarm(
+                        hour = scheduler.getSavedHour(),
+                        minute = scheduler.getSavedMinute(),
+                        isActive = isActive,
+                        triggerMillis = if (isActive) scheduler.getTriggerMillis() else 0L
+                    )
+                }
             )
 
             val jsonString = json.encodeToString(backup)
@@ -197,6 +207,10 @@ class BackupManager(
                 .edit()
                 .putString("key_pinned_note", backup.pinnedNote.orEmpty())
                 .commit()
+
+            backup.alarm?.let { alarm ->
+                AlarmScheduler(context).restoreSettings(alarm.hour, alarm.minute, alarm.isActive, alarm.triggerMillis)
+            }
 
             Result.success(backup.classLogs.size)
         } catch (e: Exception) {
