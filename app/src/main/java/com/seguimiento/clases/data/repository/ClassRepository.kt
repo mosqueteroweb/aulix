@@ -34,12 +34,11 @@ class ClassRepository(
         pinnedNotePrefs?.getString("key_pinned_note", "") ?: ""
     )
 
-    fun getPinnedNote(): StateFlow<String> {
-        val currentSaved = pinnedNotePrefs?.getString("key_pinned_note", "") ?: ""
-        if (_pinnedNoteFlow.value != currentSaved && currentSaved.isNotBlank()) {
-            _pinnedNoteFlow.value = currentSaved
-        }
-        return _pinnedNoteFlow.asStateFlow()
+    fun getPinnedNote(): StateFlow<String> = _pinnedNoteFlow.asStateFlow()
+
+    /** Relee la nota fija de preferencias (p. ej. tras restaurar una copia que la sustituye). */
+    private fun reloadPinnedNote() {
+        _pinnedNoteFlow.value = pinnedNotePrefs?.getString("key_pinned_note", "") ?: ""
     }
 
     fun savePinnedNote(note: String) {
@@ -216,7 +215,8 @@ class ClassRepository(
 
     // --- BACKUP ---
     suspend fun exportBackup(targetUri: Uri): Result<Unit> = backupManager.exportBackup(targetUri)
-    suspend fun importBackup(sourceUri: Uri): Result<Int> = backupManager.importBackup(sourceUri)
+    suspend fun importBackup(sourceUri: Uri): Result<Int> =
+        backupManager.importBackup(sourceUri).onSuccess { reloadPinnedNote() }
 
     companion object {
         /** Une el texto nuevo al de una anotación existente, separado por una línea en blanco. */
