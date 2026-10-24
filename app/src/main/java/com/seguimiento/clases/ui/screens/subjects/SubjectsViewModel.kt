@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.seguimiento.clases.data.local.entity.SubjectEntity
 import com.seguimiento.clases.data.repository.ClassRepository
+import com.seguimiento.clases.util.SubjectCodes
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -36,10 +37,12 @@ class SubjectsViewModel(
 
     fun createSubject(code: String, name: String, colorHex: String) {
         if (code.isBlank()) return
+        val allSubjects = uiState.value.activeSubjects + uiState.value.archivedSubjects
+        if (SubjectCodes.isTaken(code, allSubjects)) return
         viewModelScope.launch {
             repository.saveSubject(
                 SubjectEntity(
-                    code = code.trim().uppercase(),
+                    code = SubjectCodes.normalize(code),
                     name = name.trim(),
                     colorHex = colorHex
                 )

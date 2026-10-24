@@ -9,6 +9,7 @@ import com.seguimiento.clases.data.local.dao.SessionWithSubjectInfo
 import com.seguimiento.clases.data.local.entity.ScheduleSessionEntity
 import com.seguimiento.clases.data.local.entity.SubjectEntity
 import com.seguimiento.clases.data.repository.ClassRepository
+import com.seguimiento.clases.util.SubjectCodes
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -99,10 +100,14 @@ class SettingsViewModel(
     // --- ASIGNATURAS ---
     fun updateSubject(subject: SubjectEntity, newCode: String, newName: String) {
         if (newCode.isBlank()) return
+        if (SubjectCodes.isTaken(newCode, uiState.value.allSubjects, editingSubjectId = subject.id)) {
+            _errorMessage.value = SubjectCodes.DUPLICATE_MESSAGE
+            return
+        }
         viewModelScope.launch {
             repository.updateSubject(
                 subject.copy(
-                    code = newCode.trim().uppercase(),
+                    code = SubjectCodes.normalize(newCode),
                     name = newName.trim()
                 )
             )
