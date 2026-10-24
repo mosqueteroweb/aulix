@@ -77,23 +77,30 @@ class ClassRepository(
     }
 
     suspend fun deleteSession(session: ScheduleSessionEntity) {
-        scheduleDao.deleteSession(session)
-        // Reordenar las restantes del día
-        val remaining = scheduleDao.getRawSessionsForDay(session.dayOfWeek)
-        remaining.forEachIndexed { index, item ->
-            if (item.orderIndex != index) {
-                scheduleDao.updateSession(item.copy(orderIndex = index))
+        // En una transacción para que la lista no emita estados intermedios (parpadeo)
+        database.withTransaction {
+            scheduleDao.deleteSession(session)
+            // Reordenar las restantes del día
+            val remaining = scheduleDao.getRawSessionsForDay(session.dayOfWeek)
+            remaining.forEachIndexed { index, item ->
+                if (item.orderIndex != index) {
+                    scheduleDao.updateSession(item.copy(orderIndex = index))
+                }
             }
         }
     }
 
     suspend fun reorderSession(dayOfWeek: Int, fromIndex: Int, toIndex: Int) {
-        val sessions = scheduleDao.getRawSessionsForDay(dayOfWeek).toMutableList()
-        if (fromIndex in sessions.indices && toIndex in sessions.indices) {
-            val moved = sessions.removeAt(fromIndex)
-            sessions.add(toIndex, moved)
-            sessions.forEachIndexed { index, item ->
-                scheduleDao.updateSession(item.copy(orderIndex = index))
+        database.withTransaction {
+            val sessions = scheduleDao.getRawSessionsForDay(dayOfWeek).toMutableList()
+            if (fromIndex in sessions.indices && toIndex in sessions.indices) {
+                val moved = sessions.removeAt(fromIndex)
+                sessions.add(toIndex, moved)
+                sessions.forEachIndexed { index, item ->
+                    if (item.orderIndex != index) {
+                        scheduleDao.updateSession(item.copy(orderIndex = index))
+                    }
+                }
             }
         }
     }
