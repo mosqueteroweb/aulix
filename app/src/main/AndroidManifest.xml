@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".AppApplication"
@@ -37,6 +38,16 @@
                 <action android:name="com.seguimiento.clases.ACTION_TRIGGER_ALARM" />
                 <action android:name="com.seguimiento.clases.ACTION_SNOOZE_ALARM" />
                 <action android:name="com.seguimiento.clases.ACTION_CANCEL_ALARM" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Reprogramación de la alarma tras reiniciar el móvil o actualizar la app -->
+        <receiver
+            android:name=".alarm.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 

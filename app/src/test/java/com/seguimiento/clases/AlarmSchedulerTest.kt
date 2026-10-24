@@ -2,6 +2,7 @@ package com.seguimiento.clases
 
 import com.seguimiento.clases.alarm.AlarmScheduler
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.Calendar
@@ -45,6 +46,18 @@ class AlarmSchedulerTest {
         assertEquals(0, triggerCal.get(Calendar.MINUTE))
         assertTrue("El disparo debe ser posterior a la hora actual", triggerMillis > nowMillis)
         assertEquals(cal.get(Calendar.DAY_OF_YEAR) + 1, triggerCal.get(Calendar.DAY_OF_YEAR))
+    }
+
+    @Test
+    fun testShouldRestoreAlarmAfterReboot() {
+        val now = System.currentTimeMillis()
+
+        // Alarma activa en el futuro: se reprograma
+        assertTrue(AlarmScheduler.shouldRestoreAlarm(isActive = true, triggerMillis = now + 60_000L, nowMillis = now))
+        // Alarma activa cuya hora pasó con el móvil apagado: no se reprograma
+        assertFalse(AlarmScheduler.shouldRestoreAlarm(isActive = true, triggerMillis = now - 60_000L, nowMillis = now))
+        // Alarma desactivada: nunca se reprograma
+        assertFalse(AlarmScheduler.shouldRestoreAlarm(isActive = false, triggerMillis = now + 60_000L, nowMillis = now))
     }
 
     @Test

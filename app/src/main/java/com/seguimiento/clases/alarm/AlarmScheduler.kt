@@ -52,6 +52,14 @@ class AlarmScheduler(private val context: Context) {
         }
 
         /**
+         * Indica si una alarma guardada debe volver a programarse (p. ej. tras reiniciar el móvil):
+         * solo si estaba activa y su hora de disparo aún no ha pasado.
+         */
+        fun shouldRestoreAlarm(isActive: Boolean, triggerMillis: Long, nowMillis: Long = System.currentTimeMillis()): Boolean {
+            return isActive && triggerMillis > nowMillis
+        }
+
+        /**
          * Formatea el tiempo restante de forma legible en español.
          */
         fun formatRemainingTime(triggerMillis: Long, nowMillis: Long = System.currentTimeMillis()): String {
@@ -108,6 +116,22 @@ class AlarmScheduler(private val context: Context) {
         val pendingIntent = createAlarmPendingIntent()
         alarmManager.cancel(pendingIntent)
         saveState(isActive = false, triggerMillis = 0L, hour = getSavedHour(), minute = getSavedMinute())
+    }
+
+    /**
+     * Vuelve a registrar en el sistema la alarma guardada. Android borra las alarmas al reiniciar,
+     * así que se invoca desde [BootReceiver]. Si la hora ya pasó con el móvil apagado, se desactiva.
+     */
+    fun restoreScheduledAlarm() {
+        val isActive = prefs.getBoolean(KEY_IS_ACTIVE, false)
+        if (!isActive) return
+
+        val triggerMillis = getTriggerMillis()
+        if (shouldRestoreAlarm(isActive, triggerMillis)) {
+            setAlarmExact(triggerMillis)
+        } else {
+            saveState(isActive = false, triggerMillis = 0L, hour = getSavedHour(), minute = getSavedMinute())
+        }
     }
 
     /**
