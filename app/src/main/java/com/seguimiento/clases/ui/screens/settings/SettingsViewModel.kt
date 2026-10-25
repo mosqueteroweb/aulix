@@ -6,9 +6,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.seguimiento.clases.data.backup.ImportSummary
 import com.seguimiento.clases.data.local.dao.SessionWithSubjectInfo
-import com.seguimiento.clases.data.local.entity.ScheduleSessionEntity
 import com.seguimiento.clases.data.local.entity.SubjectEntity
 import com.seguimiento.clases.data.repository.ClassRepository
+import com.seguimiento.clases.util.HourGrid
 import com.seguimiento.clases.util.SubjectCodes
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -67,33 +67,14 @@ class SettingsViewModel(
     }
 
     // --- HORARIO ---
-    fun addSessionToDay(subjectId: Long) {
-        val currentDay = _selectedScheduleDay.value
+    /** Asigna un módulo (o deja libre, con null) una hora del día seleccionado. */
+    fun setHour(hourIndex: Int, subjectId: Long?) {
+        val day = _selectedScheduleDay.value
+        val hours = HourGrid.fromSessions(uiState.value.scheduleSessions.map { it.session }).toMutableList()
+        if (hourIndex !in hours.indices || hours[hourIndex] == subjectId) return
+        hours[hourIndex] = subjectId
         viewModelScope.launch {
-            repository.addSession(currentDay, subjectId)
-        }
-    }
-
-    fun removeSession(session: ScheduleSessionEntity) {
-        viewModelScope.launch {
-            repository.deleteSession(session)
-        }
-    }
-
-    fun moveSessionUp(index: Int) {
-        if (index <= 0) return
-        val currentDay = _selectedScheduleDay.value
-        viewModelScope.launch {
-            repository.reorderSession(currentDay, index, index - 1)
-        }
-    }
-
-    fun moveSessionDown(index: Int) {
-        val sessions = uiState.value.scheduleSessions
-        if (index >= sessions.size - 1) return
-        val currentDay = _selectedScheduleDay.value
-        viewModelScope.launch {
-            repository.reorderSession(currentDay, index, index + 1)
+            repository.replaceDaySchedule(day, hours)
         }
     }
 

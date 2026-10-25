@@ -9,12 +9,14 @@ import com.seguimiento.clases.data.local.AppDatabase
 import com.seguimiento.clases.data.local.dao.SessionWithSubjectInfo
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
 import com.seguimiento.clases.data.local.entity.IdeaEntity
-import com.seguimiento.clases.data.local.entity.ScheduleSessionEntity
 import com.seguimiento.clases.data.local.entity.SubjectEntity
+import com.seguimiento.clases.util.HourGrid
+import com.seguimiento.clases.util.SubjectCodes
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 
 class ClassRepository(
     private val database: AppDatabase,
@@ -64,46 +66,56 @@ class ClassRepository(
     fun getAllSessionsWithSubject(): Flow<List<SessionWithSubjectInfo>> =
         scheduleDao.getAllSessionsWithSubject()
 
-    suspend fun addSession(dayOfWeek: Int, subjectId: Long) {
-        val currentSessions = scheduleDao.getRawSessionsForDay(dayOfWeek)
-        val nextOrder = if (currentSessions.isEmpty()) 0 else currentSessions.maxOf { it.orderIndex } + 1
-        scheduleDao.insertSession(
-            ScheduleSessionEntity(
-                dayOfWeek = dayOfWeek,
-                subjectId = subjectId,
-                orderIndex = nextOrder
+    /** Sustituye el horario de un día por la cuadrícula de horas indicada (id de módulo o null). */
+    suspend fun replaceDaySchedule(dayOfWeek: Int, hours: List<Long?>) {
+        database.withTransaction {
+            scheduleDao.deleteSessionsForDay(dayOfWeek)
+            scheduleDao.insertSessions(HourGrid.toSessions(dayOfWeek, hours))
+        }
+    }
+
+    // --- NUEVO CURSO ---
+    /**
+     * Borra todos los datos del curso (módulos, horario, anotaciones, ideas y nota fija) y crea
+     * el curso nuevo en una sola transacción: si algo falla, los datos anteriores se conservan.
+     * [hoursByDay] usa, para cada día (1 = lunes … 5 = viernes), la posición del módulo en [modules].
+     * La alarma no se toca: es configuración del móvil, no del curso.
+     */
+    suspend fun startNewCourse(modules: List<NewCourseModule>, hoursByDay: Map<Int, List<Int?>>) {
+        database.withTransaction {
+            scheduleDao.deleteAllSessions()
+            classLogDao.deleteAllLogs()
+            ideaDao.deleteAllIdeas()
+            subjectDao.deleteAllSubjects()
+
+            val subjectIds = subjectDao.insertSubjects(
+                modules.mapIndexed { index, module ->
+                    SubjectEntity(
+                        code = SubjectCodes.normalize(module.code),
+                        name = module.name.trim(),
+                        colorHex = module.colorHex,
+                        displayOrder = index + 1
+                    )
+                }
             )
-        )
-    }
-
-    suspend fun deleteSession(session: ScheduleSessionEntity) {
-        // En una transacción para que la lista no emita estados intermedios (parpadeo)
-        database.withTransaction {
-            scheduleDao.deleteSession(session)
-            // Reordenar las restantes del día
-            val remaining = scheduleDao.getRawSessionsForDay(session.dayOfWeek)
-            remaining.forEachIndexed { index, item ->
-                if (item.orderIndex != index) {
-                    scheduleDao.updateSession(item.copy(orderIndex = index))
-                }
+            hoursByDay.forEach { (day, hours) ->
+                val subjectHours = hours.map { moduleIndex -> moduleIndex?.let { subjectIds[it] } }
+                scheduleDao.insertSessions(HourGrid.toSessions(day, subjectHours))
             }
         }
+        savePinnedNote("")
+        _dataResets.value++
     }
 
-    suspend fun reorderSession(dayOfWeek: Int, fromIndex: Int, toIndex: Int) {
-        database.withTransaction {
-            val sessions = scheduleDao.getRawSessionsForDay(dayOfWeek).toMutableList()
-            if (fromIndex in sessions.indices && toIndex in sessions.indices) {
-                val moved = sessions.removeAt(fromIndex)
-                sessions.add(toIndex, moved)
-                sessions.forEachIndexed { index, item ->
-                    if (item.orderIndex != index) {
-                        scheduleDao.updateSession(item.copy(orderIndex = index))
-                    }
-                }
-            }
-        }
-    }
+    /**
+     * Cambia cada vez que los datos se sustituyen por completo (curso nuevo o copia restaurada),
+     * para que las pantallas descarten lo que tengan a medio guardar del curso anterior.
+     */
+    private val _dataResets = MutableStateFlow(0)
+    val dataResets: StateFlow<Int> = _dataResets.asStateFlow()
+
+    suspend fun hasAnyData(): Boolean =
+        subjectDao.getAllSubjects().first().isNotEmpty() || classLogDao.getAllLogs().isNotEmpty()
 
     // --- REGISTRO DE CLASES ---
     fun getLogForSubjectAndDate(subjectId: Long, date: String): Flow<ClassLogEntity?> =
@@ -224,7 +236,10 @@ class ClassRepository(
     // --- BACKUP ---
     suspend fun exportBackup(targetUri: Uri): Result<Unit> = backupManager.exportBackup(targetUri)
     suspend fun importBackup(sourceUri: Uri): Result<ImportSummary> =
-        backupManager.importBackup(sourceUri).onSuccess { reloadPinnedNote() }
+        backupManager.importBackup(sourceUri).onSuccess {
+            reloadPinnedNote()
+            _dataResets.value++
+        }
 
     companion object {
         /** Une el texto nuevo al de una anotación existente, separado por una línea en blanco. */

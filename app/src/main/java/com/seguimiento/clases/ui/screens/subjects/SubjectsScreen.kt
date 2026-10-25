@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.data.local.entity.SubjectEntity
 import com.seguimiento.clases.ui.components.SubjectBadge
+import com.seguimiento.clases.ui.theme.SubjectColorPresets
 import com.seguimiento.clases.ui.theme.parseColor
 import com.seguimiento.clases.util.SubjectCodes
 
@@ -190,15 +191,7 @@ fun CreateSubjectDialog(
     var name by remember { mutableStateOf("") }
     var selectedColor by remember { mutableStateOf("#2563EB") }
 
-    val presetColors = listOf(
-        "#2563EB", // Azul
-        "#7C3AED", // Púrpura
-        "#059669", // Verde
-        "#D97706", // Ámbar
-        "#DC2626", // Rojo
-        "#0891B2", // Cian
-        "#DB2777"  // Rosa
-    )
+    val presetColors = SubjectColorPresets
 
     AlertDialog(
         onDismissRequest = onDismiss,

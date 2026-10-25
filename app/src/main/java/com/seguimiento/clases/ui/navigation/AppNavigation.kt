@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.alarm.AlarmScheduler
 import com.seguimiento.clases.ui.screens.alarm.AlarmScreen
 import com.seguimiento.clases.ui.screens.alarm.AlarmViewModel
+import com.seguimiento.clases.ui.screens.newcourse.NewCourseScreen
+import com.seguimiento.clases.ui.screens.newcourse.NewCourseViewModel
 import com.seguimiento.clases.ui.screens.search.SearchScreen
 import com.seguimiento.clases.ui.screens.search.SearchViewModel
 import com.seguimiento.clases.ui.screens.settings.SettingsScreen
@@ -164,7 +166,8 @@ fun AppNavigation(
                             }
                             launchSingleTop = true
                         }
-                    }
+                    },
+                    onNavigateToNewCourse = { navController.navigate(Screen.NewCourse.route) }
                 )
             }
 
@@ -215,7 +218,25 @@ fun AppNavigation(
                 )
                 SettingsScreen(
                     viewModel = settingsViewModel,
-                    onNavigateToSearch = { navController.navigate(Screen.Search.route) }
+                    onNavigateToSearch = { navController.navigate(Screen.Search.route) },
+                    onNavigateToNewCourse = { navController.navigate(Screen.NewCourse.route) }
+                )
+            }
+
+            // Asistente «Nuevo curso»
+            composable(Screen.NewCourse.route) {
+                val newCourseViewModel: NewCourseViewModel = viewModel(
+                    factory = NewCourseViewModel.provideFactory(repository)
+                )
+                NewCourseScreen(
+                    viewModel = newCourseViewModel,
+                    onClose = { navController.popBackStack() },
+                    onFinished = {
+                        navController.navigate(Screen.Today.route) {
+                            popUpTo(navController.graph.findStartDestination().id)
+                            launchSingleTop = true
+                        }
+                    }
                 )
             }
 
