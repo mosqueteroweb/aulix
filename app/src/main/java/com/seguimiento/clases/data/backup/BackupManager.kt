@@ -29,69 +29,7 @@ class BackupManager(
 
     suspend fun exportBackup(targetUri: Uri): Result<Unit> = withContext(Dispatchers.IO) {
         try {
-            val subjects = database.subjectDao().getAllSubjects().first()
-            val sessions = database.scheduleDao().getAllRawSessions()
-            val logs = database.classLogDao().getAllLogs()
-            val ideas = database.ideaDao().getAllIdeas()
-
-            val backup = BackupData(
-                version = 1,
-                app = "SeguimientoClases",
-                exportedAt = System.currentTimeMillis(),
-                subjects = subjects.map {
-                    BackupSubject(
-                        id = it.id,
-                        code = it.code,
-                        name = it.name,
-                        colorHex = it.colorHex,
-                        isArchived = it.isArchived,
-                        displayOrder = it.displayOrder
-                    )
-                },
-                scheduleSessions = sessions.map {
-                    BackupScheduleSession(
-                        id = it.id,
-                        dayOfWeek = it.dayOfWeek,
-                        subjectId = it.subjectId,
-                        orderIndex = it.orderIndex,
-                        startHour = it.startHour,
-                        endHour = it.endHour
-                    )
-                },
-                classLogs = logs.map {
-                    BackupClassLog(
-                        id = it.id,
-                        subjectId = it.subjectId,
-                        date = it.date,
-                        content = it.content,
-                        isCompleted = it.isCompleted,
-                        updatedAt = it.updatedAt
-                    )
-                },
-                ideas = ideas.map {
-                    BackupIdea(
-                        id = it.id,
-                        subjectId = it.subjectId,
-                        text = it.text,
-                        isUsed = it.isUsed,
-                        createdAt = it.createdAt,
-                        updatedAt = it.updatedAt
-                    )
-                },
-                pinnedNote = context.getSharedPreferences("aulix_pinned_notes", android.content.Context.MODE_PRIVATE)
-                    .getString("key_pinned_note", null),
-                alarm = AlarmScheduler(context).let { scheduler ->
-                    val isActive = scheduler.isAlarmActive()
-                    BackupAlarm(
-                        hour = scheduler.getSavedHour(),
-                        minute = scheduler.getSavedMinute(),
-                        isActive = isActive,
-                        triggerMillis = if (isActive) scheduler.getTriggerMillis() else 0L
-                    )
-                }
-            )
-
-            val jsonString = json.encodeToString(backup)
+            val jsonString = createBackupJson()
 
             context.contentResolver.openOutputStream(targetUri)?.use { outputStream ->
                 outputStream.write(jsonString.toByteArray(Charsets.UTF_8))
@@ -102,6 +40,73 @@ class BackupManager(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+    /** JSON completo de la copia: lo usan la exportación manual y la copia automática. */
+    suspend fun createBackupJson(): String = withContext(Dispatchers.IO) {
+        val subjects = database.subjectDao().getAllSubjects().first()
+        val sessions = database.scheduleDao().getAllRawSessions()
+        val logs = database.classLogDao().getAllLogs()
+        val ideas = database.ideaDao().getAllIdeas()
+
+        val backup = BackupData(
+            version = 1,
+            app = "SeguimientoClases",
+            exportedAt = System.currentTimeMillis(),
+            subjects = subjects.map {
+                BackupSubject(
+                    id = it.id,
+                    code = it.code,
+                    name = it.name,
+                    colorHex = it.colorHex,
+                    isArchived = it.isArchived,
+                    displayOrder = it.displayOrder
+                )
+            },
+            scheduleSessions = sessions.map {
+                BackupScheduleSession(
+                    id = it.id,
+                    dayOfWeek = it.dayOfWeek,
+                    subjectId = it.subjectId,
+                    orderIndex = it.orderIndex,
+                    startHour = it.startHour,
+                    endHour = it.endHour
+                )
+            },
+            classLogs = logs.map {
+                BackupClassLog(
+                    id = it.id,
+                    subjectId = it.subjectId,
+                    date = it.date,
+                    content = it.content,
+                    isCompleted = it.isCompleted,
+                    updatedAt = it.updatedAt
+                )
+            },
+            ideas = ideas.map {
+                BackupIdea(
+                    id = it.id,
+                    subjectId = it.subjectId,
+                    text = it.text,
+                    isUsed = it.isUsed,
+                    createdAt = it.createdAt,
+                    updatedAt = it.updatedAt
+                )
+            },
+            pinnedNote = context.getSharedPreferences("aulix_pinned_notes", android.content.Context.MODE_PRIVATE)
+                .getString("key_pinned_note", null),
+            alarm = AlarmScheduler(context).let { scheduler ->
+                val isActive = scheduler.isAlarmActive()
+                BackupAlarm(
+                    hour = scheduler.getSavedHour(),
+                    minute = scheduler.getSavedMinute(),
+                    isActive = isActive,
+                    triggerMillis = if (isActive) scheduler.getTriggerMillis() else 0L
+                )
+            }
+        )
+
+        json.encodeToString(backup)
     }
 
     suspend fun importBackup(sourceUri: Uri): Result<ImportSummary> = withContext(Dispatchers.IO) {

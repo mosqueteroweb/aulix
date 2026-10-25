@@ -100,6 +100,9 @@ dependencies {
     implementation("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
 
+    // Copia automática periódica en segundo plano
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     // Kotlinx Serialization JSON
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
