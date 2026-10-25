@@ -180,7 +180,11 @@ fun SettingsScreen(
                 onExport = { uri -> viewModel.exportBackup(uri) },
                 onImport = { uri -> viewModel.importBackup(uri) },
                 isExporting = uiState.isExporting,
-                isImporting = uiState.isImporting
+                isImporting = uiState.isImporting,
+                isAutoBackupSupported = uiState.isAutoBackupSupported,
+                isAutoBackingUp = uiState.isAutoBackingUp,
+                lastAutoBackupMillis = uiState.lastAutoBackupMillis,
+                onAutoBackupNow = { viewModel.autoBackupNow() }
             )
 
             // Información sobre la app

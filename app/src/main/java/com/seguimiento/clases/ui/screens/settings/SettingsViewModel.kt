@@ -20,6 +20,9 @@ data class SettingsUiState(
     val activeSubjects: List<SubjectEntity> = emptyList(),
     val isExporting: Boolean = false,
     val isImporting: Boolean = false,
+    val isAutoBackupSupported: Boolean = false,
+    val isAutoBackingUp: Boolean = false,
+    val lastAutoBackupMillis: Long = 0L,
     val feedbackMessage: String? = null,
     val errorMessage: String? = null
 )
@@ -49,12 +52,17 @@ class SettingsViewModel(
             activeSubjects = subjects.filter { !it.isArchived },
             isExporting = operation == BackupOperation.EXPORTING,
             isImporting = operation == BackupOperation.IMPORTING,
+            isAutoBackupSupported = repository.isAutoBackupSupported,
+            isAutoBackingUp = operation == BackupOperation.AUTO_BACKUP,
             feedbackMessage = feedback,
             errorMessage = error
         )
     }.flatMapLatest { baseState ->
-        repository.getSessionsForDay(baseState.selectedScheduleDay).map { sessions ->
-            baseState.copy(scheduleSessions = sessions)
+        combine(
+            repository.getSessionsForDay(baseState.selectedScheduleDay),
+            repository.getLastAutoBackupMillis()
+        ) { sessions, lastAutoBackup ->
+            baseState.copy(scheduleSessions = sessions, lastAutoBackupMillis = lastAutoBackup)
         }
     }.stateIn(
         scope = viewModelScope,
@@ -132,12 +140,31 @@ class SettingsViewModel(
         }
     }
 
+    /** Hace ahora la copia automática en Descargas/Aulix (además de la programada cada 2 semanas). */
+    fun autoBackupNow() {
+        if (_backupOperation.value != null) return
+        _backupOperation.value = BackupOperation.AUTO_BACKUP
+        viewModelScope.launch {
+            val result = repository.autoBackupNow()
+            _backupOperation.value = null
+            result.onSuccess { fileName ->
+                if (fileName != null) {
+                    _feedbackMessage.value = "Copia guardada en Descargas/Aulix"
+                } else {
+                    _feedbackMessage.value = "Todavía no hay datos que copiar"
+                }
+            }.onFailure { error ->
+                _errorMessage.value = "Error en la copia automática: ${error.message}"
+            }
+        }
+    }
+
     fun clearMessages() {
         _feedbackMessage.value = null
         _errorMessage.value = null
     }
 
-    private enum class BackupOperation { EXPORTING, IMPORTING }
+    private enum class BackupOperation { EXPORTING, IMPORTING, AUTO_BACKUP }
 
     companion object {
         /** Mensaje tras restaurar, con lo importado: «Copia restaurada: 4 módulos, 35 anotaciones y 1 idea.» */

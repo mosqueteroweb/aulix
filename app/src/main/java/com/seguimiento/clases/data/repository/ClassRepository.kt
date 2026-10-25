@@ -3,6 +3,7 @@ package com.seguimiento.clases.data.repository
 import android.content.Context
 import android.net.Uri
 import androidx.room.withTransaction
+import com.seguimiento.clases.data.backup.AutoBackupManager
 import com.seguimiento.clases.data.backup.BackupManager
 import com.seguimiento.clases.data.backup.ImportSummary
 import com.seguimiento.clases.data.local.AppDatabase
@@ -17,11 +18,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 
 class ClassRepository(
     private val database: AppDatabase,
     private val backupManager: BackupManager,
-    private val context: Context? = null
+    private val context: Context? = null,
+    private val autoBackupManager: AutoBackupManager? = null
 ) {
     private val subjectDao = database.subjectDao()
     private val scheduleDao = database.scheduleDao()
@@ -235,6 +238,16 @@ class ClassRepository(
 
     // --- BACKUP ---
     suspend fun exportBackup(targetUri: Uri): Result<Unit> = backupManager.exportBackup(targetUri)
+    // --- COPIA AUTOMÁTICA ---
+    val isAutoBackupSupported: Boolean
+        get() = autoBackupManager?.isSupported == true
+
+    fun getLastAutoBackupMillis(): Flow<Long> = autoBackupManager?.lastBackupFlow() ?: flowOf(0L)
+
+    /** Hace ahora la copia automática; null si no hay datos que copiar. */
+    suspend fun autoBackupNow(): Result<String?> =
+        autoBackupManager?.createBackup() ?: Result.failure(IllegalStateException("Copia automática no disponible"))
+
     suspend fun importBackup(sourceUri: Uri): Result<ImportSummary> =
         backupManager.importBackup(sourceUri).onSuccess {
             reloadPinnedNote()

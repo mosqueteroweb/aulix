@@ -14,7 +14,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.seguimiento.clases.data.backup.AutoBackupManager
+import java.text.SimpleDateFormat
 import java.time.LocalDate
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun BackupSection(
@@ -22,9 +26,13 @@ fun BackupSection(
     onImport: (Uri) -> Unit,
     modifier: Modifier = Modifier,
     isExporting: Boolean = false,
-    isImporting: Boolean = false
+    isImporting: Boolean = false,
+    isAutoBackupSupported: Boolean = false,
+    isAutoBackingUp: Boolean = false,
+    lastAutoBackupMillis: Long = 0L,
+    onAutoBackupNow: () -> Unit = {}
 ) {
-    val isBusy = isExporting || isImporting
+    val isBusy = isExporting || isImporting || isAutoBackingUp
     var showImportWarningDialog by remember { mutableStateOf(false) }
     var pendingImportUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -129,7 +137,11 @@ fun BackupSection(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = if (isExporting) "Guardando la copia…" else "Restaurando la copia…",
+                    text = when {
+                        isExporting -> "Guardando la copia…"
+                        isImporting -> "Restaurando la copia…"
+                        else -> "Haciendo la copia automática…"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -190,6 +202,50 @@ fun BackupSection(
                         softWrap = false
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Copia automática",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            if (isAutoBackupSupported) {
+                Text(
+                    text = "Cada 2 semanas en Descargas/Aulix. Se guardan las ${AutoBackupManager.KEEP_COPIES} más recientes; " +
+                        "las copias que exportes a mano no se borran.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = if (lastAutoBackupMillis > 0) {
+                        "Última copia: " + SimpleDateFormat("dd/MM/yy HH:mm", Locale("es", "ES")).format(Date(lastAutoBackupMillis))
+                    } else {
+                        "Aún no se ha hecho ninguna copia automática"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onAutoBackupNow,
+                    enabled = !isBusy,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Hacer copia ahora")
+                }
+            } else {
+                Text(
+                    text = "Disponible a partir de Android 10. Mientras tanto, exporta la copia a mano.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
