@@ -6,6 +6,11 @@ App Android, sin conexión, para el seguimiento de clases: lo visto en cada sesi
 
 En **Ajustes → Empezar nuevo curso** un asistente guarda una copia del curso que termina, pide los módulos del curso nuevo y su horario de lunes a viernes (6 horas al día; las horas seguidas del mismo módulo forman una sola clase) y, al confirmar, borra todo lo anterior y crea el curso nuevo. Una instalación nueva empieza vacía y lleva directamente a ese asistente. El curso antiguo se puede consultar restaurando su copia.
 
+## Copias de seguridad
+
+- **Automática:** cada 2 semanas en `Descargas/Aulix`, conservando solo las 3 más recientes (Android 10 o posterior). En Ajustes se ve la fecha de la última y hay un botón para hacerla al momento.
+- **Manual:** Ajustes → Exportar, al archivo que elijas. Estas no se borran nunca.
+
 ## Compilar
 
 Requiere JDK 17 y el SDK de Android (plataforma 34). La ruta del SDK va en `local.properties`, que no se sube al repositorio.
