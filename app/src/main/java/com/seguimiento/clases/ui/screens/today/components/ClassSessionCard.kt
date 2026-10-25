@@ -45,6 +45,7 @@ import com.seguimiento.clases.data.local.entity.ClassLogEntity
 import com.seguimiento.clases.ui.components.SubjectBadge
 import com.seguimiento.clases.util.DateUtils.formatShortDate
 import com.seguimiento.clases.ui.screens.subjects.components.AddEditLogDialog
+import com.seguimiento.clases.util.HourGrid
 import com.seguimiento.clases.ui.screens.today.SessionCardUiState
 import com.seguimiento.clases.ui.theme.DayThemes
 import com.seguimiento.clases.ui.theme.parseColor
@@ -68,6 +69,7 @@ fun ClassSessionCard(
     val sessionId = cardState.session.session.id
     val subjectId = subject.id
     val haptic = LocalHapticFeedback.current
+    val hoursLabel = HourGrid.label(cardState.session.session.startHour, cardState.session.session.endHour)
 
     // Si la tarjeta está completada, se muestra compacta como en el historial
     if (cardState.isCompleted) {
@@ -125,6 +127,15 @@ fun ClassSessionCard(
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1
                             )
+                            if (hoursLabel.isNotEmpty()) {
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = hoursLabel,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1
+                                )
+                            }
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
@@ -292,13 +303,32 @@ fun ClassSessionCard(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = subject.code,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = subject.code,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                        if (hoursLabel.isNotEmpty()) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            ) {
+                                Text(
+                                    text = hoursLabel,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
                     if (subject.name.isNotBlank() && subject.name != subject.code) {
                         Text(
                             text = subject.name,

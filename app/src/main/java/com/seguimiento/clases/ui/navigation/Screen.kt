@@ -57,6 +57,11 @@ sealed class Screen(
         title = "Búsqueda"
     )
 
+    object NewCourse : Screen(
+        route = "new_course",
+        title = "Nuevo curso"
+    )
+
     companion object {
         val bottomNavItems = listOf(Today, Subjects, Alarm, Settings)
     }

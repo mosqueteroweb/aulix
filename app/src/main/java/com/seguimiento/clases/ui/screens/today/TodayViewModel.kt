@@ -40,7 +40,16 @@ data class TodayUiState(
     val sessions: List<SessionCardUiState> = emptyList(),
     val isLoading: Boolean = true,
     val activeBottomSheetSubjectId: Long? = null, // Para el BottomSheet de ideas
-    val pinnedNote: String = ""
+    val pinnedNote: String = "",
+    // false cuando aún no hay ningún módulo (instalación nueva): hay que configurar el curso
+    val hasSubjects: Boolean = true
+)
+
+private data class DayData(
+    val date: LocalDate,
+    val dbSessions: List<SessionDbData>,
+    val expandedIds: Set<Long>,
+    val hasSubjects: Boolean
 )
 
 private data class SessionDbData(
@@ -110,14 +119,19 @@ class TodayViewModel(
     }
 
     val uiState: StateFlow<TodayUiState> = combine(
-        combine(_selectedDate, _dbDataFlow, _expandedSubjectIds) { date, dbSessions, expandedIds ->
-            Triple(date, dbSessions, expandedIds)
+        combine(
+            _selectedDate,
+            _dbDataFlow,
+            _expandedSubjectIds,
+            repository.getAllSubjects().map { it.isNotEmpty() }
+        ) { date, dbSessions, expandedIds, hasSubjects ->
+            DayData(date, dbSessions, expandedIds, hasSubjects)
         },
         _draftLogs,
         _activeBottomSheetSubjectId,
         repository.getPinnedNote(),
         _schoolToday
-    ) { (date, dbSessions, expandedIds), drafts, bottomSheetId, pinnedNoteText, currentSchoolToday ->
+    ) { (date, dbSessions, expandedIds, hasSubjects), drafts, bottomSheetId, pinnedNoteText, currentSchoolToday ->
         val dayOfWeek = date.dayOfWeek.value // 1 = Lunes, 5 = Viernes
         val isToday = date.isEqual(currentSchoolToday)
 
@@ -155,7 +169,8 @@ class TodayViewModel(
             sessions = cardStates,
             isLoading = false,
             activeBottomSheetSubjectId = bottomSheetId,
-            pinnedNote = pinnedNoteText
+            pinnedNote = pinnedNoteText,
+            hasSubjects = hasSubjects
         )
     }.stateIn(
         scope = viewModelScope,
@@ -164,6 +179,20 @@ class TodayViewModel(
     )
 
     init {
+        // Si los datos se sustituyen por completo (curso nuevo o copia restaurada), lo que hubiera
+        // a medio guardar pertenece al curso anterior: se descarta y se vuelve a hoy
+        viewModelScope.launch {
+            repository.dataResets.drop(1).collect {
+                saveDebounceJobs.values.forEach { job -> job.cancel() }
+                saveDebounceJobs.clear()
+                _draftLogs.value = emptyMap()
+                _expandedSubjectIds.value = emptySet()
+                _activeBottomSheetSubjectId.value = null
+                val today = adjustToWeekday(LocalDate.now())
+                _schoolToday.value = today
+                _selectedDate.value = today
+            }
+        }
         // Con la app abierta en primer plano, actualizar «hoy» justo después de la medianoche
         viewModelScope.launch {
             while (true) {

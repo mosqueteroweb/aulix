@@ -53,7 +53,9 @@ class BackupManager(
                         id = it.id,
                         dayOfWeek = it.dayOfWeek,
                         subjectId = it.subjectId,
-                        orderIndex = it.orderIndex
+                        orderIndex = it.orderIndex,
+                        startHour = it.startHour,
+                        endHour = it.endHour
                     )
                 },
                 classLogs = logs.map {
@@ -171,7 +173,9 @@ class BackupManager(
                         id = it.id,
                         dayOfWeek = it.dayOfWeek,
                         subjectId = it.subjectId,
-                        orderIndex = it.orderIndex
+                        orderIndex = it.orderIndex,
+                        startHour = it.startHour ?: (it.orderIndex + 1),
+                        endHour = it.endHour ?: it.startHour ?: (it.orderIndex + 1)
                     )
                 }
                 database.scheduleDao().insertSessions(sessionEntities)

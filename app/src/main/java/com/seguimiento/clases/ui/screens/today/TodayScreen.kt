@@ -30,7 +30,8 @@ fun TodayScreen(
     viewModel: TodayViewModel,
     onNavigateToSubjectDetail: (Long) -> Unit,
     onNavigateToSubjectsList: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToNewCourse: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var showPinnedNoteSheet by remember { mutableStateOf(false) }
@@ -62,6 +63,40 @@ fun TodayScreen(
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center)
                 )
+            } else if (!uiState.hasSubjects) {
+                // Instalación nueva o curso sin configurar
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.School,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Configura tu curso",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Añade los módulos que vas a impartir y su horario de lunes a viernes.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(onClick = onNavigateToNewCourse) {
+                        Text("Configurar curso")
+                    }
+                }
             } else if (uiState.sessions.isEmpty()) {
                 // Estado vacío cuando no hay clases programadas
                 Column(

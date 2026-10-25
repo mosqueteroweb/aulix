@@ -24,7 +24,8 @@ import com.seguimiento.clases.ui.screens.settings.components.SubjectManageSectio
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onNavigateToSearch: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onNavigateToNewCourse: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -127,10 +128,7 @@ fun SettingsScreen(
                 sessions = uiState.scheduleSessions,
                 activeSubjects = uiState.activeSubjects,
                 onSelectDay = { viewModel.selectScheduleDay(it) },
-                onAddSession = { viewModel.addSessionToDay(it) },
-                onRemoveSession = { viewModel.removeSession(it) },
-                onMoveUp = { viewModel.moveSessionUp(it) },
-                onMoveDown = { viewModel.moveSessionDown(it) }
+                onSetHour = { hourIndex, subjectId -> viewModel.setHour(hourIndex, subjectId) }
             )
 
             // Sección 2: Gestión de Asignaturas
@@ -141,6 +139,41 @@ fun SettingsScreen(
                 },
                 onToggleArchive = { viewModel.toggleArchiveSubject(it) }
             )
+
+            // Sección: Nuevo curso (borra todo y configura módulos y horario desde cero)
+            Card(
+                onClick = onNavigateToNewCourse,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Empezar nuevo curso",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Guarda una copia, borra el curso actual y configura los módulos y el horario nuevos.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
             // Sección 3: Copia de Seguridad JSON
             BackupSection(
