@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.seguimiento.clases.ui.components.HourGridEditor
 import com.seguimiento.clases.ui.components.HourOption
 import com.seguimiento.clases.ui.components.SubjectBadge
+import com.seguimiento.clases.ui.screens.settings.components.reportFileName
 import com.seguimiento.clases.ui.theme.DayThemes
 import com.seguimiento.clases.ui.theme.SubjectColorPresets
 import com.seguimiento.clases.ui.theme.parseColor
@@ -178,7 +180,7 @@ fun NewCourseScreen(
                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
             }
             when (uiState.step) {
-                NewCourseStep.BACKUP -> BackupStep(uiState, onExport = viewModel::exportBackup)
+                NewCourseStep.BACKUP -> BackupStep(uiState, onExport = viewModel::exportBackup, onExportReport = viewModel::exportReport)
                 NewCourseStep.MODULES -> ModulesStep(uiState, viewModel)
                 NewCourseStep.SCHEDULE -> ScheduleStep(uiState, viewModel)
                 NewCourseStep.SUMMARY -> SummaryStep(uiState)
@@ -195,10 +197,17 @@ private fun stepTitle(step: NewCourseStep): String = when (step) {
 }
 
 @Composable
-private fun BackupStep(uiState: NewCourseUiState, onExport: (android.net.Uri) -> Unit) {
+private fun BackupStep(
+    uiState: NewCourseUiState,
+    onExport: (android.net.Uri) -> Unit,
+    onExportReport: (android.net.Uri) -> Unit
+) {
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json")
     ) { uri -> uri?.let(onExport) }
+    val reportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/pdf")
+    ) { uri -> uri?.let(onExportReport) }
 
     Text(
         text = "Antes de empezar, guarda una copia de todo el curso actual: módulos, horario, anotaciones, " +
@@ -227,6 +236,33 @@ private fun BackupStep(uiState: NewCourseUiState, onExport: (android.net.Uri) ->
         Icon(Icons.Filled.FileUpload, contentDescription = null)
         Spacer(Modifier.width(8.dp))
         Text(if (uiState.backupDone) "Guardar otra copia" else "Guardar copia del curso actual")
+    }
+
+    Spacer(Modifier.height(8.dp))
+    Text(
+        text = "Opcional: guarda también el registro del curso en PDF, con todo lo visto en clase por módulo, " +
+            "para la memoria o para preparar el curso siguiente.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    if (uiState.reportSaved) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = Color(0xFF059669))
+            Spacer(Modifier.width(8.dp))
+            Text("Registro guardado", fontWeight = FontWeight.SemiBold)
+        }
+    }
+    if (uiState.isExportingReport) {
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+    }
+    OutlinedButton(
+        onClick = { reportLauncher.launch(reportFileName()) },
+        enabled = !uiState.isExportingReport,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Icon(Icons.Filled.PictureAsPdf, contentDescription = null)
+        Spacer(Modifier.width(8.dp))
+        Text("Guardar registro en PDF")
     }
 }
 

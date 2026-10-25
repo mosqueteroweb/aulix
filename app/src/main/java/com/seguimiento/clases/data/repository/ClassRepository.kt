@@ -6,6 +6,7 @@ import androidx.room.withTransaction
 import com.seguimiento.clases.data.backup.AutoBackupManager
 import com.seguimiento.clases.data.backup.BackupManager
 import com.seguimiento.clases.data.backup.ImportSummary
+import com.seguimiento.clases.data.export.CourseReportExporter
 import com.seguimiento.clases.data.local.AppDatabase
 import com.seguimiento.clases.data.local.dao.SessionWithSubjectInfo
 import com.seguimiento.clases.data.local.entity.ClassLogEntity
@@ -238,6 +239,14 @@ class ClassRepository(
 
     // --- BACKUP ---
     suspend fun exportBackup(targetUri: Uri): Result<Unit> = backupManager.exportBackup(targetUri)
+    // --- REGISTRO EN PDF ---
+    private val reportExporter by lazy { context?.let { CourseReportExporter(it, database) } }
+
+    /** Exporta el registro legible del curso (PDF) y devuelve el número de páginas. */
+    suspend fun exportCourseReport(targetUri: Uri): Result<Int> =
+        reportExporter?.export(targetUri, _pinnedNoteFlow.value)
+            ?: Result.failure(IllegalStateException("Exportación no disponible"))
+
     // --- COPIA AUTOMÁTICA ---
     val isAutoBackupSupported: Boolean
         get() = autoBackupManager?.isSupported == true
