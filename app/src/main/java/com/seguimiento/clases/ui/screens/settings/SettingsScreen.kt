@@ -16,6 +16,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.Alignment
 import com.seguimiento.clases.ui.screens.settings.components.BackupSection
+import com.seguimiento.clases.ui.screens.settings.components.CourseReportSection
 import com.seguimiento.clases.ui.screens.settings.components.ScheduleEditorSection
 import com.seguimiento.clases.ui.screens.settings.components.SubjectManageSection
 
@@ -174,6 +175,12 @@ fun SettingsScreen(
                     )
                 }
             }
+
+            // Sección: Registro del curso en PDF
+            CourseReportSection(
+                onExport = { uri -> viewModel.exportCourseReport(uri) },
+                isExporting = uiState.isExportingReport
+            )
 
             // Sección 3: Copia de Seguridad JSON
             BackupSection(

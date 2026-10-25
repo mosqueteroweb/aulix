@@ -33,6 +33,8 @@ data class NewCourseUiState(
     val needsBackup: Boolean = false,
     val backupDone: Boolean = false,
     val isExporting: Boolean = false,
+    val reportSaved: Boolean = false,
+    val isExportingReport: Boolean = false,
     val modules: List<ModuleDraft> = emptyList(),
     val hoursByDay: Map<Int, List<Long?>> = HourGrid.SCHOOL_DAYS.associateWith { HourGrid.emptyDay() },
     val selectedDay: Int = 1,
@@ -87,6 +89,22 @@ class NewCourseViewModel(
                     isExporting = false,
                     backupDone = it.backupDone || result.isSuccess,
                     errorMessage = result.exceptionOrNull()?.let { error -> "No se pudo guardar la copia: ${error.message}" }
+                )
+            }
+        }
+    }
+
+    /** Opcional: guarda también el registro legible del curso que termina, en PDF. */
+    fun exportReport(targetUri: Uri) {
+        if (_uiState.value.isExportingReport) return
+        _uiState.update { it.copy(isExportingReport = true, errorMessage = null) }
+        viewModelScope.launch {
+            val result = repository.exportCourseReport(targetUri)
+            _uiState.update {
+                it.copy(
+                    isExportingReport = false,
+                    reportSaved = it.reportSaved || result.isSuccess,
+                    errorMessage = result.exceptionOrNull()?.let { error -> "No se pudo guardar el registro: ${error.message}" }
                 )
             }
         }

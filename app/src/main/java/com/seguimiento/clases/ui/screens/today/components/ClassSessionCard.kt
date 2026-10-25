@@ -476,7 +476,11 @@ fun ClassSessionCard(
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = if (ideasCount > 0) "$ideasCount ideas pendientes" else "Ideas pendientes",
+                        text = when (ideasCount) {
+                            0 -> "Ideas pendientes"
+                            1 -> "1 idea pendiente"
+                            else -> "$ideasCount ideas pendientes"
+                        },
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Medium,
                         maxLines = 1,

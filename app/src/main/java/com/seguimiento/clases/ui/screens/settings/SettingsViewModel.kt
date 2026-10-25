@@ -22,6 +22,7 @@ data class SettingsUiState(
     val isImporting: Boolean = false,
     val isAutoBackupSupported: Boolean = false,
     val isAutoBackingUp: Boolean = false,
+    val isExportingReport: Boolean = false,
     val lastAutoBackupMillis: Long = 0L,
     val feedbackMessage: String? = null,
     val errorMessage: String? = null
@@ -54,6 +55,7 @@ class SettingsViewModel(
             isImporting = operation == BackupOperation.IMPORTING,
             isAutoBackupSupported = repository.isAutoBackupSupported,
             isAutoBackingUp = operation == BackupOperation.AUTO_BACKUP,
+            isExportingReport = operation == BackupOperation.REPORT,
             feedbackMessage = feedback,
             errorMessage = error
         )
@@ -159,12 +161,26 @@ class SettingsViewModel(
         }
     }
 
+    fun exportCourseReport(targetUri: Uri) {
+        if (_backupOperation.value != null) return
+        _backupOperation.value = BackupOperation.REPORT
+        viewModelScope.launch {
+            val result = repository.exportCourseReport(targetUri)
+            _backupOperation.value = null
+            result.onSuccess { pages ->
+                _feedbackMessage.value = "Registro guardado ($pages ${if (pages == 1) "página" else "páginas"})"
+            }.onFailure { error ->
+                _errorMessage.value = "Error al exportar el registro: ${error.message}"
+            }
+        }
+    }
+
     fun clearMessages() {
         _feedbackMessage.value = null
         _errorMessage.value = null
     }
 
-    private enum class BackupOperation { EXPORTING, IMPORTING, AUTO_BACKUP }
+    private enum class BackupOperation { EXPORTING, IMPORTING, AUTO_BACKUP, REPORT }
 
     companion object {
         /** Mensaje tras restaurar, con lo importado: «Copia restaurada: 4 módulos, 35 anotaciones y 1 idea.» */
