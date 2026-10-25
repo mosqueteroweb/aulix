@@ -46,9 +46,9 @@ class BackupRoundTripTest {
         SubjectEntity(id = 7, code = "OLD", name = "Módulo archivado", colorHex = "#123456", isArchived = true, displayOrder = 9)
     )
     private val sessions = listOf(
-        ScheduleSessionEntity(id = 1, dayOfWeek = 1, subjectId = 1, orderIndex = 0),
-        ScheduleSessionEntity(id = 2, dayOfWeek = 1, subjectId = 2, orderIndex = 1),
-        ScheduleSessionEntity(id = 5, dayOfWeek = 5, subjectId = 2, orderIndex = 0)
+        ScheduleSessionEntity(id = 1, dayOfWeek = 1, subjectId = 1, orderIndex = 0, startHour = 2, endHour = 3),
+        ScheduleSessionEntity(id = 2, dayOfWeek = 1, subjectId = 2, orderIndex = 1, startHour = 4, endHour = 4),
+        ScheduleSessionEntity(id = 5, dayOfWeek = 5, subjectId = 2, orderIndex = 0, startHour = 1, endHour = 2)
     )
     private val logs = listOf(
         ClassLogEntity(id = 1, subjectId = 1, date = "2026-10-19", content = "Tema 1: «layouts»\nEjercicio 3 ✅", isCompleted = true, updatedAt = 1_000L),

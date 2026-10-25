@@ -39,7 +39,10 @@ data class BackupScheduleSession(
     val id: Long,
     val dayOfWeek: Int,
     val subjectId: Long,
-    val orderIndex: Int
+    val orderIndex: Int,
+    // Ausentes en copias anteriores a la 1.1.0: se toma una hora por sesión según su orden
+    val startHour: Int? = null,
+    val endHour: Int? = null
 )
 
 @Serializable

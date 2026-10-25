@@ -136,6 +136,8 @@ class BackupSerializationTest {
 
         assertNull(backup.pinnedNote)
         assertNull(backup.alarm)
+        // Las sesiones de copias anteriores a la 1.1.0 no traen horas
+        assertNull(backup.scheduleSessions.single().startHour)
         assertEquals(1, backup.subjects.size)
         assertTrue(backup.classLogs.single().isCompleted)
         assertTrue(backup.ideas.single().isUsed)

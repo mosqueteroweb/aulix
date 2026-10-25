@@ -4,15 +4,10 @@ import android.app.Application
 import com.seguimiento.clases.data.backup.BackupManager
 import com.seguimiento.clases.data.local.AppDatabase
 import com.seguimiento.clases.data.repository.ClassRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 
 class AppApplication : Application() {
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
     val database by lazy {
-        AppDatabase.getDatabase(this, applicationScope)
+        AppDatabase.getDatabase(this)
     }
 
     val backupManager by lazy {
@@ -25,7 +20,7 @@ class AppApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // Asegurar que la base de datos se inicializa en segundo plano al arrancar
+        // Crear la instancia de la base de datos al arrancar
         database
     }
 }

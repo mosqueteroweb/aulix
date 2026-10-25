@@ -14,9 +14,6 @@ import com.seguimiento.clases.data.local.entity.ClassLogEntity
 import com.seguimiento.clases.data.local.entity.IdeaEntity
 import com.seguimiento.clases.data.local.entity.ScheduleSessionEntity
 import com.seguimiento.clases.data.local.entity.SubjectEntity
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @Database(
     entities = [
@@ -25,8 +22,8 @@ import kotlinx.coroutines.launch
         ClassLogEntity::class,
         IdeaEntity::class
     ],
-    version = 2,
-    exportSchema = false
+    version = 3,
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun subjectDao(): SubjectDao
@@ -44,31 +41,28 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-        fun getDatabase(context: Context, scope: CoroutineScope): AppDatabase {
+        // v3: el horario pasa a tener horas lectivas (1ª a 6ª). Las sesiones existentes solo tenían
+        // orden, así que se asigna una hora por sesión según ese orden (1ª, 2ª, 3ª…).
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE schedule_sessions ADD COLUMN startHour INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("ALTER TABLE schedule_sessions ADD COLUMN endHour INTEGER NOT NULL DEFAULT 0")
+                db.execSQL("UPDATE schedule_sessions SET startHour = orderIndex + 1, endHour = orderIndex + 1")
+            }
+        }
+
+        fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
+                // Una instalación nueva empieza vacía: el curso se configura con el asistente «Nuevo curso»
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
                     "seguimiento_clases.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
-                    .addCallback(DatabaseCallback(scope))
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                 INSTANCE = instance
                 instance
-            }
-        }
-
-        private class DatabaseCallback(
-            private val scope: CoroutineScope
-        ) : RoomDatabase.Callback() {
-            override fun onCreate(db: SupportSQLiteDatabase) {
-                super.onCreate(db)
-                INSTANCE?.let { database ->
-                    scope.launch(Dispatchers.IO) {
-                        DatabaseInitializer.populateInitialData(database)
-                    }
-                }
             }
         }
     }

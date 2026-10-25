@@ -34,6 +34,11 @@ android {
         }
     }
 
+    // Esquemas de Room versionados en el repositorio (app/schemas), para detectar cambios de base de datos
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -62,6 +67,10 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
