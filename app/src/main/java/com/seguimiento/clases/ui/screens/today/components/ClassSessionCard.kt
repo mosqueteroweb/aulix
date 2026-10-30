@@ -69,7 +69,9 @@ fun ClassSessionCard(
     val sessionId = cardState.session.session.id
     val subjectId = subject.id
     val haptic = LocalHapticFeedback.current
+    // Sin la «h» final: en la tarjeta se entiende que son horas y así cabe mejor
     val hoursLabel = HourGrid.label(cardState.session.session.startHour, cardState.session.session.endHour)
+        .removeSuffix(" h")
 
     // Si la tarjeta está completada, se muestra compacta como en el historial
     if (cardState.isCompleted) {
@@ -120,22 +122,16 @@ fun ClassSessionCard(
                     Spacer(modifier = Modifier.width(10.dp))
 
                     Column(modifier = Modifier.weight(1f)) {
+                        // Las siglas ya van dentro de la insignia: aquí solo las horas, que necesitan el ancho
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = subject.code,
-                                style = MaterialTheme.typography.titleMedium,
+                                text = hoursLabel.ifEmpty { subject.code },
+                                style = if (hoursLabel.isEmpty()) MaterialTheme.typography.titleMedium
+                                        else MaterialTheme.typography.labelLarge,
                                 fontWeight = FontWeight.Bold,
-                                maxLines = 1
+                                maxLines = 1,
+                                softWrap = false
                             )
-                            if (hoursLabel.isNotEmpty()) {
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = hoursLabel,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1
-                                )
-                            }
                             Spacer(modifier = Modifier.width(8.dp))
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
@@ -303,16 +299,17 @@ fun ClassSessionCard(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
+                    // Las siglas ya van dentro de la insignia: aquí solo las horas, que necesitan el ancho
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = subject.code,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                        if (hoursLabel.isNotEmpty()) {
-                            Spacer(modifier = Modifier.width(8.dp))
+                        if (hoursLabel.isEmpty()) {
+                            Text(
+                                text = subject.code,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                softWrap = false
+                            )
+                        } else {
                             Surface(
                                 shape = RoundedCornerShape(6.dp),
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
