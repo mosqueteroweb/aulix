@@ -1,5 +1,8 @@
 package com.seguimiento.clases.ui.screens.newcourse
 
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -121,7 +124,8 @@ fun NewCourseScreen(
         },
         bottomBar = {
             if (!uiState.isLoading) {
-                Surface(tonalElevation = 3.dp) {
+                // Por encima del teclado: en la pantalla exterior de un plegable quedaba tapada por él
+                Surface(tonalElevation = 3.dp, modifier = Modifier.imePadding()) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -168,7 +172,6 @@ fun NewCourseScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -301,6 +304,16 @@ private fun ModulesStep(uiState: NewCourseUiState, viewModel: NewCourseViewModel
         }
     }
 
+    val addModule = {
+        val error = viewModel.addModule(code, name, color)
+        if (error == null) {
+            code = ""
+            name = ""
+        } else {
+            formError = error
+        }
+    }
+
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
@@ -321,6 +334,7 @@ private fun ModulesStep(uiState: NewCourseUiState, viewModel: NewCourseViewModel
                     else -> null
                 },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
@@ -328,6 +342,9 @@ private fun ModulesStep(uiState: NewCourseUiState, viewModel: NewCourseViewModel
                 onValueChange = { name = it },
                 label = { Text("Nombre (opcional)") },
                 singleLine = true,
+                // «Hecho» en el teclado añade el módulo sin tener que buscar el botón
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                keyboardActions = KeyboardActions(onDone = { if (code.isNotBlank() && !isDuplicate) addModule() }),
                 modifier = Modifier.fillMaxWidth()
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -347,15 +364,7 @@ private fun ModulesStep(uiState: NewCourseUiState, viewModel: NewCourseViewModel
                 }
             }
             Button(
-                onClick = {
-                    val error = viewModel.addModule(code, name, color)
-                    if (error == null) {
-                        code = ""
-                        name = ""
-                    } else {
-                        formError = error
-                    }
-                },
+                onClick = { addModule() },
                 enabled = code.isNotBlank() && !isDuplicate,
                 modifier = Modifier.fillMaxWidth()
             ) {

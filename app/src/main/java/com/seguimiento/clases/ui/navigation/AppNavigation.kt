@@ -1,6 +1,15 @@
 package com.seguimiento.clases.ui.navigation
 
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,60 +71,69 @@ fun AppNavigation(
     val isAlarmActive by alarmScheduler.isAlarmActiveFlow().collectAsState(initial = alarmScheduler.isAlarmActive())
 
     val isImeVisible = WindowInsets.isImeVisible
+    // Pantalla interior de un plegable, tablets y horizontal: raíl lateral en vez de barra inferior
+    val isWide = LocalConfiguration.current.screenWidthDp >= 600
+    val isMainRoute = Screen.bottomNavItems.any { it.route == currentRoute }
     val shouldShowBottomBar = Screen.bottomNavItems.any { it.route == currentRoute } && !isImeVisible
+
+    // Mismos destinos, iconos y etiquetas para la barra inferior (móvil) y el raíl lateral (pantallas anchas)
+    val navigateTo: (Screen) -> Unit = { screen ->
+        if (currentRoute != screen.route) {
+            navController.navigate(screen.route) {
+                popUpTo(navController.graph.findStartDestination().id) {
+                    saveState = true
+                }
+                launchSingleTop = true
+                restoreState = true
+            }
+        }
+    }
+    val navIcon: @Composable (Screen, Boolean) -> Unit = { screen, selected ->
+        val isAlarmScreen = screen == Screen.Alarm
+        val icon = if (selected) screen.selectedIcon else screen.unselectedIcon
+        icon?.let {
+            if (isAlarmScreen && isAlarmActive) {
+                BadgedBox(
+                    badge = {
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(6.dp)
+                        )
+                    }
+                ) {
+                    Icon(
+                        it,
+                        contentDescription = screen.title,
+                        tint = if (selected) MaterialTheme.colorScheme.error else Color(0xFFEF4444)
+                    )
+                }
+            } else {
+                Icon(it, contentDescription = screen.title)
+            }
+        }
+    }
+    val navLabel: @Composable (Screen, Boolean) -> Unit = { screen, selected ->
+        val isAlarmScreen = screen == Screen.Alarm
+        Text(
+            text = screen.title,
+            maxLines = 1,
+            softWrap = false,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (isAlarmScreen && isAlarmActive && !selected) Color(0xFFEF4444) else Color.Unspecified
+        )
+    }
 
     Scaffold(
         bottomBar = {
-            if (shouldShowBottomBar) {
+            if (shouldShowBottomBar && !isWide) {
                 NavigationBar {
                     Screen.bottomNavItems.forEach { screen ->
                         val selected = currentRoute == screen.route
-                        val isAlarmScreen = screen == Screen.Alarm
                         NavigationBarItem(
                             selected = selected,
-                            onClick = {
-                                if (currentRoute != screen.route) {
-                                    navController.navigate(screen.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            },
-                            icon = {
-                                val icon = if (selected) screen.selectedIcon else screen.unselectedIcon
-                                icon?.let {
-                                    if (isAlarmScreen && isAlarmActive) {
-                                        BadgedBox(
-                                            badge = {
-                                                Badge(
-                                                    containerColor = MaterialTheme.colorScheme.error,
-                                                    modifier = Modifier.size(6.dp)
-                                                )
-                                            }
-                                        ) {
-                                            Icon(
-                                                it,
-                                                contentDescription = screen.title,
-                                                tint = if (selected) MaterialTheme.colorScheme.error else Color(0xFFEF4444)
-                                            )
-                                        }
-                                    } else {
-                                        Icon(it, contentDescription = screen.title)
-                                    }
-                                }
-                            },
-                            label = {
-                                Text(
-                                    text = screen.title,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (isAlarmScreen && isAlarmActive && !selected) Color(0xFFEF4444) else Color.Unspecified
-                                )
-                            },
+                            onClick = { navigateTo(screen) },
+                            icon = { navIcon(screen, selected) },
+                            label = { navLabel(screen, selected) },
                             alwaysShowLabel = true
                         )
                     }
@@ -144,123 +162,152 @@ fun AppNavigation(
             onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
 
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Today.route,
+        Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
         ) {
-            // Pantalla Hoy
-            composable(Screen.Today.route) {
-                TodayScreen(
-                    viewModel = todayViewModel,
-                    onNavigateToSubjectDetail = { subjectId ->
-                        navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
-                    },
-                    onNavigateToSubjectsList = {
-                        navController.navigate(Screen.Subjects.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+            if (isWide && isMainRoute) {
+                NavigationRail(modifier = Modifier.fillMaxHeight()) {
+                    Spacer(modifier = Modifier.weight(1f))
+                    Screen.bottomNavItems.forEach { screen ->
+                        val selected = currentRoute == screen.route
+                        NavigationRailItem(
+                            selected = selected,
+                            onClick = { navigateTo(screen) },
+                            icon = { navIcon(screen, selected) },
+                            label = { navLabel(screen, selected) },
+                            alwaysShowLabel = true
+                        )
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                }
+            }
+            Box(
+                modifier = Modifier.weight(1f).fillMaxHeight(),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                NavHost(
+                    navController = navController,
+                    startDestination = Screen.Today.route,
+                    // «Hoy» reparte sus tarjetas en columnas; el resto de pantallas mantiene un ancho cómodo de leer
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .widthIn(max = if (currentRoute == Screen.Today.route) Dp.Unspecified else 640.dp)
+                        .fillMaxWidth()
+                ) {
+                    // Pantalla Hoy
+                    composable(Screen.Today.route) {
+                        TodayScreen(
+                            viewModel = todayViewModel,
+                            onNavigateToSubjectDetail = { subjectId ->
+                                navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
+                            },
+                            onNavigateToSubjectsList = {
+                                navController.navigate(Screen.Subjects.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToNewCourse = { navController.navigate(Screen.NewCourse.route) }
+                        )
+                    }
+
+                    // Pantalla Listado Asignaturas
+                    composable(Screen.Subjects.route) {
+                        val subjectsViewModel: SubjectsViewModel = viewModel(
+                            factory = SubjectsViewModel.provideFactory(repository)
+                        )
+                        SubjectsScreen(
+                            viewModel = subjectsViewModel,
+                            onNavigateToDetail = { subjectId ->
+                                navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
                             }
-                            launchSingleTop = true
-                        }
-                    },
-                    onNavigateToNewCourse = { navController.navigate(Screen.NewCourse.route) }
-                )
-            }
-
-            // Pantalla Listado Asignaturas
-            composable(Screen.Subjects.route) {
-                val subjectsViewModel: SubjectsViewModel = viewModel(
-                    factory = SubjectsViewModel.provideFactory(repository)
-                )
-                SubjectsScreen(
-                    viewModel = subjectsViewModel,
-                    onNavigateToDetail = { subjectId ->
-                        navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
+                        )
                     }
-                )
-            }
 
-            // Pantalla Detalle Asignatura (Registro + Ideas)
-            composable(
-                route = Screen.SubjectDetail.route,
-                arguments = listOf(
-                    navArgument("subjectId") { type = NavType.LongType }
-                )
-            ) { backStackEntry ->
-                val subjectId = backStackEntry.arguments?.getLong("subjectId") ?: return@composable
-                val detailViewModel: SubjectDetailViewModel = viewModel(
-                    factory = SubjectDetailViewModel.provideFactory(subjectId, repository)
-                )
-                SubjectDetailScreen(
-                    viewModel = detailViewModel,
-                    onNavigateBack = { navController.popBackStack() }
-                )
-            }
-
-            // Pantalla Alarma
-            composable(Screen.Alarm.route) {
-                val alarmViewModel: AlarmViewModel = viewModel(
-                    factory = AlarmViewModel.provideFactory(context.applicationContext as Application)
-                )
-                AlarmScreen(
-                    viewModel = alarmViewModel
-                )
-            }
-
-            // Pantalla Ajustes
-            composable(Screen.Settings.route) {
-                val settingsViewModel: SettingsViewModel = viewModel(
-                    factory = SettingsViewModel.provideFactory(repository)
-                )
-                SettingsScreen(
-                    viewModel = settingsViewModel,
-                    onNavigateToSearch = { navController.navigate(Screen.Search.route) },
-                    onNavigateToNewCourse = { navController.navigate(Screen.NewCourse.route) }
-                )
-            }
-
-            // Asistente «Nuevo curso»
-            composable(Screen.NewCourse.route) {
-                val newCourseViewModel: NewCourseViewModel = viewModel(
-                    factory = NewCourseViewModel.provideFactory(repository)
-                )
-                NewCourseScreen(
-                    viewModel = newCourseViewModel,
-                    onClose = { navController.popBackStack() },
-                    onFinished = {
-                        navController.navigate(Screen.Today.route) {
-                            popUpTo(navController.graph.findStartDestination().id)
-                            launchSingleTop = true
-                        }
+                    // Pantalla Detalle Asignatura (Registro + Ideas)
+                    composable(
+                        route = Screen.SubjectDetail.route,
+                        arguments = listOf(
+                            navArgument("subjectId") { type = NavType.LongType }
+                        )
+                    ) { backStackEntry ->
+                        val subjectId = backStackEntry.arguments?.getLong("subjectId") ?: return@composable
+                        val detailViewModel: SubjectDetailViewModel = viewModel(
+                            factory = SubjectDetailViewModel.provideFactory(subjectId, repository)
+                        )
+                        SubjectDetailScreen(
+                            viewModel = detailViewModel,
+                            onNavigateBack = { navController.popBackStack() }
+                        )
                     }
-                )
-            }
 
-            // Pantalla Buscador
-            composable(Screen.Search.route) {
-                val searchViewModel: SearchViewModel = viewModel(
-                    factory = SearchViewModel.provideFactory(repository)
-                )
-                SearchScreen(
-                    viewModel = searchViewModel,
-                    onNavigateBack = { navController.popBackStack() },
-                    onNavigateToTodayDate = { dateStr ->
-                        todayViewModel.onSelectDate(dateStr)
-                        navController.navigate(Screen.Today.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
+                    // Pantalla Alarma
+                    composable(Screen.Alarm.route) {
+                        val alarmViewModel: AlarmViewModel = viewModel(
+                            factory = AlarmViewModel.provideFactory(context.applicationContext as Application)
+                        )
+                        AlarmScreen(
+                            viewModel = alarmViewModel
+                        )
+                    }
+
+                    // Pantalla Ajustes
+                    composable(Screen.Settings.route) {
+                        val settingsViewModel: SettingsViewModel = viewModel(
+                            factory = SettingsViewModel.provideFactory(repository)
+                        )
+                        SettingsScreen(
+                            viewModel = settingsViewModel,
+                            onNavigateToSearch = { navController.navigate(Screen.Search.route) },
+                            onNavigateToNewCourse = { navController.navigate(Screen.NewCourse.route) }
+                        )
+                    }
+
+                    // Asistente «Nuevo curso»
+                    composable(Screen.NewCourse.route) {
+                        val newCourseViewModel: NewCourseViewModel = viewModel(
+                            factory = NewCourseViewModel.provideFactory(repository)
+                        )
+                        NewCourseScreen(
+                            viewModel = newCourseViewModel,
+                            onClose = { navController.popBackStack() },
+                            onFinished = {
+                                navController.navigate(Screen.Today.route) {
+                                    popUpTo(navController.graph.findStartDestination().id)
+                                    launchSingleTop = true
+                                }
                             }
-                            launchSingleTop = true
-                        }
-                    },
-                    onNavigateToSubject = { subjectId ->
-                        navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
+                        )
                     }
-                )
+
+                    // Pantalla Buscador
+                    composable(Screen.Search.route) {
+                        val searchViewModel: SearchViewModel = viewModel(
+                            factory = SearchViewModel.provideFactory(repository)
+                        )
+                        SearchScreen(
+                            viewModel = searchViewModel,
+                            onNavigateBack = { navController.popBackStack() },
+                            onNavigateToTodayDate = { dateStr ->
+                                todayViewModel.onSelectDate(dateStr)
+                                navController.navigate(Screen.Today.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToSubject = { subjectId ->
+                                navController.navigate(Screen.SubjectDetail.createRoute(subjectId))
+                            }
+                        )
+                    }
+                }
             }
         }
     }

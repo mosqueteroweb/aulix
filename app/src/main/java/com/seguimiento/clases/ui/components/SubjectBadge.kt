@@ -34,7 +34,10 @@ fun SubjectBadge(
         when {
             code.length <= 2 -> (size * 0.38f).toSp()
             code.length == 3 -> (size * 0.30f).toSp()
-            else -> (size * 0.24f).toSp()
+            code.length == 4 -> (size * 0.24f).toSp()
+            // Siglas largas (hasta 8): más pequeñas para que quepan en el círculo
+            code.length <= 6 -> (size * 0.17f).toSp()
+            else -> (size * 0.13f).toSp()
         }
     }
 
